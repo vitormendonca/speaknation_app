@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../models/homework_activity.dart';
+import '../../services/student_progress_service.dart';
 
 class HomeworkActivityScreen extends StatefulWidget {
   final HomeworkActivity activity;
@@ -19,7 +20,7 @@ class _HomeworkActivityScreenState extends State<HomeworkActivityScreen> {
   bool answered = false;
 
   bool lastCompleted = false;
-  bool? lastCorrect;
+  int? lastScore;
 
   @override
   void initState() {
@@ -28,33 +29,48 @@ class _HomeworkActivityScreenState extends State<HomeworkActivityScreen> {
   }
 
   Future<void> loadLastResult() async {
-    final prefs = await SharedPreferences.getInstance();
+    final completed = await StudentProgressService.isActivityCompleted(
+      activityId: widget.activity.id,
+      category: 'homework',
+    );
 
-    final completed =
-        prefs.getBool('${widget.activity.id}_completed') ?? false;
-    final correct = prefs.getBool('${widget.activity.id}_correct');
+    final score = await StudentProgressService.getActivityScore(
+      activityId: widget.activity.id,
+      category: 'homework',
+    );
+
+    if (!mounted) return;
 
     setState(() {
       lastCompleted = completed;
-      lastCorrect = correct;
+      lastScore = score;
     });
   }
+Future<void> checkAnswer() async {
+  final bool isCorrect = selectedAnswer == widget.activity.correctAnswer;
+  final int score = isCorrect ? 100 : 0;
 
-  Future<void> checkAnswer() async {
-    final bool isCorrect = selectedAnswer == widget.activity.correctAnswer;
-
-    final prefs = await SharedPreferences.getInstance();
-
-    await prefs.setBool('${widget.activity.id}_completed', true);
-    await prefs.setBool('${widget.activity.id}_correct', isCorrect);
-
-    setState(() {
-      answered = true;
-      lastCompleted = true;
-      lastCorrect = isCorrect;
-    });
+  if (isCorrect) {
+    await StudentProgressService.markActivityAsCompleted(
+      activityId: widget.activity.id,
+      category: 'homework',
+    );
   }
 
+  await StudentProgressService.saveActivityScore(
+    activityId: widget.activity.id,
+    category: 'homework',
+    score: score,
+  );
+
+  if (!mounted) return;
+
+  setState(() {
+    answered = true;
+    lastCompleted = isCorrect;
+    lastScore = score;
+  });
+}
   void tryAgain() {
     setState(() {
       selectedAnswer = null;
@@ -65,6 +81,7 @@ class _HomeworkActivityScreenState extends State<HomeworkActivityScreen> {
   @override
   Widget build(BuildContext context) {
     final bool isCorrect = selectedAnswer == widget.activity.correctAnswer;
+    final bool lastCorrect = lastScore == 100;
 
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
@@ -76,34 +93,31 @@ class _HomeworkActivityScreenState extends State<HomeworkActivityScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          if (lastCompleted && lastCorrect != null && !answered) ...[
+          if (lastCompleted && lastScore != null && !answered) ...[
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: const Color(0xFF1E1E1E),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: lastCorrect == true
-                      ? Colors.greenAccent
-                      : Colors.orangeAccent,
+                  color: lastCorrect ? Colors.greenAccent : Colors.orangeAccent,
                 ),
               ),
               child: Row(
                 children: [
                   Icon(
-                    lastCorrect == true ? Icons.check_circle : Icons.info,
-                    color: lastCorrect == true
-                        ? Colors.greenAccent
-                        : Colors.orangeAccent,
+                    lastCorrect ? Icons.check_circle : Icons.info,
+                    color:
+                        lastCorrect ? Colors.greenAccent : Colors.orangeAccent,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      lastCorrect == true
-                          ? 'Last result: Correct'
-                          : 'Last result: Review needed',
+                      lastCorrect
+                          ? 'Last result: Correct - $lastScore%'
+                          : 'Last result: Review needed - $lastScore%',
                       style: TextStyle(
-                        color: lastCorrect == true
+                        color: lastCorrect
                             ? Colors.greenAccent
                             : Colors.orangeAccent,
                         fontSize: 16,
@@ -202,13 +216,10 @@ class _HomeworkActivityScreenState extends State<HomeworkActivityScreen> {
                     children: [
                       Icon(
                         isCorrect ? Icons.check_circle : Icons.info,
-                        color: isCorrect
-                            ? Colors.greenAccent
-                            : Colors.orangeAccent,
+                        color:
+                            isCorrect ? Colors.greenAccent : Colors.orangeAccent,
                       ),
-
                       const SizedBox(width: 10),
-
                       Expanded(
                         child: Text(
                           isCorrect
@@ -230,7 +241,7 @@ class _HomeworkActivityScreenState extends State<HomeworkActivityScreen> {
 
                   Text(
                     isCorrect
-                        ? 'Great job. This activity is completed.'
+                        ? 'Great job. This activity is completed. Score: 100%'
                         : 'Correct answer: ${widget.activity.correctAnswer}',
                     style: const TextStyle(
                       color: Colors.white70,
@@ -241,7 +252,7 @@ class _HomeworkActivityScreenState extends State<HomeworkActivityScreen> {
                   if (!isCorrect) ...[
                     const SizedBox(height: 6),
                     const Text(
-                      'Review the example and try again later.',
+                      'Review the example and try again later. Score: 0%',
                       style: TextStyle(
                         color: Colors.white54,
                         fontSize: 14,

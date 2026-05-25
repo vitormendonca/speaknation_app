@@ -5,9 +5,19 @@ import '../homework/homework_screen.dart';
 import '../listening/listening_screen.dart';
 import '../reading/reading_screen.dart';
 import '../vocabulary/vocabulary_screen.dart';
+import 'student_profile_screen.dart';
 
 class StudentHomeScreen extends StatelessWidget {
   const StudentHomeScreen({super.key});
+
+  void openScreen(BuildContext context, Widget screen) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => screen,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,9 +50,7 @@ class StudentHomeScreen extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-
                 SizedBox(height: 8),
-
                 Text(
                   'Practice English with listening, vocabulary, reading, and homework activities.',
                   style: TextStyle(
@@ -53,6 +61,17 @@ class StudentHomeScreen extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+
+          const SizedBox(height: 24),
+
+          PracticeCard(
+            title: 'My Profile',
+            description: 'View your progress, achievements, and learning journey.',
+            icon: Icons.person,
+            onTap: () {
+              openScreen(context, const StudentProfileScreen());
+            },
           ),
 
           const SizedBox(height: 24),
@@ -73,12 +92,7 @@ class StudentHomeScreen extends StatelessWidget {
             description: 'Listen, answer questions, and practice comprehension.',
             icon: Icons.headphones,
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ListeningScreen(),
-                ),
-              );
+              openScreen(context, const ListeningScreen());
             },
           ),
 
@@ -87,12 +101,7 @@ class StudentHomeScreen extends StatelessWidget {
             description: 'Build vocabulary with themed quizzes and scores.',
             icon: Icons.quiz,
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const VocabularyScreen(),
-                ),
-              );
+              openScreen(context, const VocabularyScreen());
             },
           ),
 
@@ -101,12 +110,7 @@ class StudentHomeScreen extends StatelessWidget {
             description: 'Read short texts and practice comprehension.',
             icon: Icons.menu_book,
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ReadingScreen(),
-                ),
-              );
+              openScreen(context, const ReadingScreen());
             },
           ),
 
@@ -115,12 +119,7 @@ class StudentHomeScreen extends StatelessWidget {
             description: 'Complete extra practice assigned by your teacher.',
             icon: Icons.assignment,
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const HomeworkScreen(),
-                ),
-              );
+              openScreen(context, const HomeworkScreen());
             },
           ),
 

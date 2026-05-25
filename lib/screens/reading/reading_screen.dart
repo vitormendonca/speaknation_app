@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/reading_data.dart';
 import '../../models/activity_question.dart';
 import '../../models/reading_activity.dart';
+import '../../services/student_progress_service.dart';
 
 class ReadingScreen extends StatefulWidget {
   const ReadingScreen({super.key});
@@ -13,8 +13,8 @@ class ReadingScreen extends StatefulWidget {
 }
 
 class _ReadingScreenState extends State<ReadingScreen> {
-  Map<String, int> lastScores = {};
-  Map<String, int> lastTotals = {};
+  Map<String, int> activityScores = {};
+  Map<String, bool> completedActivities = {};
 
   @override
   void initState() {
@@ -23,22 +23,29 @@ class _ReadingScreenState extends State<ReadingScreen> {
   }
 
   Future<void> loadProgress() async {
-    final prefs = await SharedPreferences.getInstance();
-
     final Map<String, int> loadedScores = {};
-    final Map<String, int> loadedTotals = {};
+    final Map<String, bool> loadedCompleted = {};
 
     for (final activity in readingActivities) {
-      loadedScores[activity.id] =
-          prefs.getInt('${activity.id}_last_score') ?? -1;
+      final score = await StudentProgressService.getActivityScore(
+        activityId: activity.id,
+        category: 'reading',
+      );
 
-      loadedTotals[activity.id] =
-          prefs.getInt('${activity.id}_last_total') ?? 0;
+      final isCompleted = await StudentProgressService.isActivityCompleted(
+        activityId: activity.id,
+        category: 'reading',
+      );
+
+      loadedScores[activity.id] = score ?? -1;
+      loadedCompleted[activity.id] = isCompleted;
     }
 
+    if (!mounted) return;
+
     setState(() {
-      lastScores = loadedScores;
-      lastTotals = loadedTotals;
+      activityScores = loadedScores;
+      completedActivities = loadedCompleted;
     });
   }
 
@@ -75,9 +82,7 @@ class _ReadingScreenState extends State<ReadingScreen> {
               fontWeight: FontWeight.bold,
             ),
           ),
-
           const SizedBox(height: 8),
-
           const Text(
             'Read short texts, answer questions, and check your comprehension.',
             style: TextStyle(
@@ -86,9 +91,7 @@ class _ReadingScreenState extends State<ReadingScreen> {
               height: 1.4,
             ),
           ),
-
           const SizedBox(height: 24),
-
           for (final activity in readingActivities)
             _readingActivityCard(
               activity: activity,
@@ -103,28 +106,23 @@ class _ReadingScreenState extends State<ReadingScreen> {
     required ReadingActivity activity,
     required VoidCallback onTap,
   }) {
-    final int lastScore = lastScores[activity.id] ?? -1;
-    final int lastTotal = lastTotals[activity.id] ?? 0;
-    final bool hasResult = lastScore >= 0 && lastTotal > 0;
+    final int score = activityScores[activity.id] ?? -1;
+    final bool isCompleted = completedActivities[activity.id] ?? false;
+    final bool hasResult = score >= 0;
 
     String statusText = 'Not started';
     Color statusColor = Colors.white38;
     IconData statusIcon = Icons.radio_button_unchecked;
 
     if (hasResult) {
-      final double percentage = lastScore / lastTotal;
-
-      statusText = 'Last score: $lastScore/$lastTotal';
-
-      if (percentage >= 0.8) {
+      if (isCompleted) {
+        statusText = 'Completed • Accuracy: $score%';
         statusColor = Colors.greenAccent;
         statusIcon = Icons.check_circle;
-      } else if (percentage >= 0.6) {
+      } else {
+        statusText = 'Review Needed • Accuracy: $score%';
         statusColor = Colors.orangeAccent;
         statusIcon = Icons.info;
-      } else {
-        statusColor = Colors.redAccent;
-        statusIcon = Icons.warning;
       }
     }
 
@@ -156,9 +154,7 @@ class _ReadingScreenState extends State<ReadingScreen> {
                   size: 32,
                 ),
               ),
-
               const SizedBox(width: 16),
-
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -171,9 +167,7 @@ class _ReadingScreenState extends State<ReadingScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-
                     const SizedBox(height: 6),
-
                     Text(
                       activity.description,
                       style: const TextStyle(
@@ -182,9 +176,7 @@ class _ReadingScreenState extends State<ReadingScreen> {
                         height: 1.35,
                       ),
                     ),
-
                     const SizedBox(height: 8),
-
                     Row(
                       children: [
                         Icon(
@@ -192,9 +184,7 @@ class _ReadingScreenState extends State<ReadingScreen> {
                           color: statusColor,
                           size: 16,
                         ),
-
                         const SizedBox(width: 6),
-
                         Expanded(
                           child: Text(
                             statusText,
@@ -210,9 +200,7 @@ class _ReadingScreenState extends State<ReadingScreen> {
                   ],
                 ),
               ),
-
               const SizedBox(width: 12),
-
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
@@ -323,20 +311,31 @@ class _ReadingActivityScreenState extends State<ReadingActivityScreen> {
     return score;
   }
 
-  Future<void> _saveResult() async {
-    final prefs = await SharedPreferences.getInstance();
-
+  int _calculatePercentageScore() {
     final int score = _calculateScore();
     final int total = _availableQuestionsTotal();
 
-    await prefs.setInt(
-      '${widget.activity.id}_last_score',
-      score,
-    );
+    if (total == 0) {
+      return 0;
+    }
 
-    await prefs.setInt(
-      '${widget.activity.id}_last_total',
-      total,
+    return ((score / total) * 100).round();
+  }
+
+  Future<void> _saveResult() async {
+    final int percentageScore = _calculatePercentageScore();
+
+    if (percentageScore >= 85) {
+      await StudentProgressService.markActivityAsCompleted(
+        activityId: widget.activity.id,
+        category: 'reading',
+      );
+    }
+
+    await StudentProgressService.saveActivityScore(
+      activityId: widget.activity.id,
+      category: 'reading',
+      score: percentageScore,
     );
   }
 
@@ -344,6 +343,8 @@ class _ReadingActivityScreenState extends State<ReadingActivityScreen> {
     if (!_allQuestionsAnswered()) return;
 
     await _saveResult();
+
+    if (!mounted) return;
 
     setState(() {
       showResult = true;
@@ -387,9 +388,7 @@ class _ReadingActivityScreenState extends State<ReadingActivityScreen> {
               color: Colors.white,
             ),
           ),
-
           const SizedBox(height: 8),
-
           Text(
             activity.level,
             style: const TextStyle(
@@ -398,9 +397,7 @@ class _ReadingActivityScreenState extends State<ReadingActivityScreen> {
               fontWeight: FontWeight.w600,
             ),
           ),
-
           const SizedBox(height: 20),
-
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(18),
@@ -418,9 +415,7 @@ class _ReadingActivityScreenState extends State<ReadingActivityScreen> {
               ),
             ),
           ),
-
           const SizedBox(height: 28),
-
           const Text(
             'Questions',
             style: TextStyle(
@@ -429,13 +424,9 @@ class _ReadingActivityScreenState extends State<ReadingActivityScreen> {
               color: Colors.white,
             ),
           ),
-
           const SizedBox(height: 16),
-
           for (final question in activity.questions) _buildQuestion(question),
-
           const SizedBox(height: 24),
-
           SizedBox(
             height: 54,
             child: ElevatedButton(
@@ -501,16 +492,13 @@ class _ReadingActivityScreenState extends State<ReadingActivityScreen> {
               fontWeight: FontWeight.bold,
             ),
           ),
-
           const SizedBox(height: 14),
-
           for (final option in question.options)
             _buildAnswerOption(
               question: question,
               option: option,
               selectedAnswer: selectedAnswer,
             ),
-
           if (hasAnswered) _buildInstantFeedback(question),
         ],
       ),
@@ -607,9 +595,7 @@ class _ReadingActivityScreenState extends State<ReadingActivityScreen> {
               fontWeight: FontWeight.bold,
             ),
           ),
-
           const SizedBox(height: 14),
-
           TextField(
             controller: _getController(question.id),
             style: const TextStyle(color: Colors.white),
@@ -636,7 +622,6 @@ class _ReadingActivityScreenState extends State<ReadingActivityScreen> {
               });
             },
           ),
-
           if (hasAnswered) ...[
             const SizedBox(height: 12),
             _buildInstantFeedback(question),
@@ -697,9 +682,7 @@ class _ReadingActivityScreenState extends State<ReadingActivityScreen> {
               fontWeight: FontWeight.bold,
             ),
           ),
-
           const SizedBox(height: 8),
-
           const Text(
             'This question type will be available soon.',
             style: TextStyle(color: Colors.white54),
@@ -712,13 +695,16 @@ class _ReadingActivityScreenState extends State<ReadingActivityScreen> {
   Widget _buildResultScreen() {
     final int score = _calculateScore();
     final int total = _availableQuestionsTotal();
-    final double percentage = total == 0 ? 0 : score / total;
+    final int percentageScore = _calculatePercentageScore();
+    final bool isApproved = percentageScore >= 85;
 
     String message;
 
-    if (percentage >= 0.8) {
-      message = 'Great reading comprehension!';
-    } else if (percentage >= 0.6) {
+    if (percentageScore >= 90) {
+      message = 'Excellent reading comprehension! This activity is completed.';
+    } else if (percentageScore >= 85) {
+      message = 'Great reading comprehension! This activity is completed.';
+    } else if (percentageScore >= 70) {
       message = 'Good effort. Review the text and try again.';
     } else {
       message = 'Read the text again and pay attention to the details.';
@@ -740,18 +726,27 @@ class _ReadingActivityScreenState extends State<ReadingActivityScreen> {
             decoration: BoxDecoration(
               color: const Color(0xFF1E1E1E),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white12),
+              border: Border.all(
+                color: isApproved ? Colors.greenAccent : Colors.orangeAccent,
+              ),
             ),
             child: Column(
               children: [
-                const Icon(
-                  Icons.menu_book,
-                  color: Color(0xFFB00020),
+                Icon(
+                  isApproved ? Icons.check_circle : Icons.refresh,
+                  color: isApproved ? Colors.greenAccent : Colors.orangeAccent,
                   size: 72,
                 ),
-
                 const SizedBox(height: 16),
-
+                Text(
+                  isApproved ? 'Completed' : 'Review Needed',
+                  style: TextStyle(
+                    color: isApproved ? Colors.greenAccent : Colors.orangeAccent,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 10),
                 const Text(
                   'Your score',
                   style: TextStyle(
@@ -759,9 +754,7 @@ class _ReadingActivityScreenState extends State<ReadingActivityScreen> {
                     fontSize: 18,
                   ),
                 ),
-
                 const SizedBox(height: 8),
-
                 Text(
                   '$score/$total',
                   style: const TextStyle(
@@ -770,9 +763,16 @@ class _ReadingActivityScreenState extends State<ReadingActivityScreen> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-
+                const SizedBox(height: 6),
+                Text(
+                  'Accuracy: $percentageScore%',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 12),
-
                 Text(
                   message,
                   textAlign: TextAlign.center,
@@ -784,9 +784,7 @@ class _ReadingActivityScreenState extends State<ReadingActivityScreen> {
               ],
             ),
           ),
-
           const SizedBox(height: 24),
-
           const Text(
             'Review your answers',
             style: TextStyle(
@@ -795,17 +793,13 @@ class _ReadingActivityScreenState extends State<ReadingActivityScreen> {
               fontWeight: FontWeight.bold,
             ),
           ),
-
           const SizedBox(height: 16),
-
           for (int i = 0; i < widget.activity.questions.length; i++)
             _buildReviewCard(
               index: i,
               question: widget.activity.questions[i],
             ),
-
           const SizedBox(height: 24),
-
           SizedBox(
             width: double.infinity,
             height: 52,
@@ -827,9 +821,7 @@ class _ReadingActivityScreenState extends State<ReadingActivityScreen> {
               ),
             ),
           ),
-
           const SizedBox(height: 12),
-
           SizedBox(
             width: double.infinity,
             height: 52,
@@ -880,9 +872,7 @@ class _ReadingActivityScreenState extends State<ReadingActivityScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-
             const SizedBox(height: 10),
-
             Text(
               question.question,
               style: const TextStyle(
@@ -891,9 +881,7 @@ class _ReadingActivityScreenState extends State<ReadingActivityScreen> {
                 fontWeight: FontWeight.w600,
               ),
             ),
-
             const SizedBox(height: 8),
-
             const Text(
               'This question type was not counted in this version.',
               style: TextStyle(
@@ -928,9 +916,7 @@ class _ReadingActivityScreenState extends State<ReadingActivityScreen> {
                 isCorrect ? Icons.check_circle : Icons.cancel,
                 color: isCorrect ? Colors.greenAccent : Colors.redAccent,
               ),
-
               const SizedBox(width: 8),
-
               Expanded(
                 child: Text(
                   'Question ${index + 1}',
@@ -942,9 +928,7 @@ class _ReadingActivityScreenState extends State<ReadingActivityScreen> {
               ),
             ],
           ),
-
           const SizedBox(height: 10),
-
           Text(
             question.question,
             style: const TextStyle(
@@ -953,9 +937,7 @@ class _ReadingActivityScreenState extends State<ReadingActivityScreen> {
               fontWeight: FontWeight.w600,
             ),
           ),
-
           const SizedBox(height: 10),
-
           Text(
             'Your answer: ${userAnswer.isEmpty ? 'No answer' : userAnswer}',
             style: const TextStyle(
@@ -963,9 +945,7 @@ class _ReadingActivityScreenState extends State<ReadingActivityScreen> {
               fontSize: 14,
             ),
           ),
-
           const SizedBox(height: 6),
-
           Text(
             'Correct answer: ${question.correctAnswer}',
             style: const TextStyle(

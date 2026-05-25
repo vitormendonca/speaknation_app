@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/activity_question.dart';
 import '../../models/vocabulary_quiz.dart';
+import '../../services/student_progress_service.dart';
 
 class VocabularyQuizScreen extends StatefulWidget {
   final VocabularyQuiz quiz;
@@ -67,13 +67,32 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
     return score;
   }
 
-  Future<void> _saveResult() async {
-    final prefs = await SharedPreferences.getInstance();
+  int _calculatePercentageScore() {
     final score = _calculateScore();
     final total = widget.quiz.questions.length;
 
-    await prefs.setInt('${widget.quiz.id}_last_score', score);
-    await prefs.setInt('${widget.quiz.id}_last_total', total);
+    if (total == 0) {
+      return 0;
+    }
+
+    return ((score / total) * 100).round();
+  }
+
+  Future<void> _saveResult() async {
+    final percentageScore = _calculatePercentageScore();
+
+    if (percentageScore >= 85) {
+      await StudentProgressService.markActivityAsCompleted(
+        activityId: widget.quiz.id,
+        category: 'vocabulary',
+      );
+    }
+
+    await StudentProgressService.saveActivityScore(
+      activityId: widget.quiz.id,
+      category: 'vocabulary',
+      score: percentageScore,
+    );
   }
 
   Future<void> _nextQuestion() async {
@@ -413,14 +432,17 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
   Widget _buildResultScreen() {
     final score = _calculateScore();
     final total = widget.quiz.questions.length;
-    final percentage = score / total;
+    final percentageScore = _calculatePercentageScore();
+    final bool isApproved = percentageScore >= 85;
 
     String message;
 
-    if (percentage >= 0.8) {
-      message = 'Great job!';
-    } else if (percentage >= 0.6) {
-      message = 'Good effort. Keep practicing!';
+    if (percentageScore >= 90) {
+      message = 'Excellent! This quiz is completed.';
+    } else if (percentageScore >= 85) {
+      message = 'Great job! This quiz is completed.';
+    } else if (percentageScore >= 70) {
+      message = 'Good effort. Review and try again.';
     } else {
       message = 'Review the vocabulary and try again.';
     }
@@ -441,17 +463,30 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
             decoration: BoxDecoration(
               color: const Color(0xFF1E1E1E),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white12),
+              border: Border.all(
+                color: isApproved ? Colors.greenAccent : Colors.orangeAccent,
+              ),
             ),
             child: Column(
               children: [
-                const Icon(
-                  Icons.emoji_events,
-                  color: Color(0xFFB00020),
+                Icon(
+                  isApproved ? Icons.emoji_events : Icons.refresh,
+                  color: isApproved ? Colors.greenAccent : Colors.orangeAccent,
                   size: 72,
                 ),
 
                 const SizedBox(height: 16),
+
+                Text(
+                  isApproved ? 'Completed' : 'Review Needed',
+                  style: TextStyle(
+                    color: isApproved ? Colors.greenAccent : Colors.orangeAccent,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 10),
 
                 const Text(
                   'Your score',
@@ -468,6 +503,17 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 42,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 6),
+
+                Text(
+                  'Accuracy: $percentageScore%',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
