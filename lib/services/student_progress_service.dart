@@ -6,6 +6,10 @@ class StudentProgressService {
   static const String _completedActivitiesKey = 'completed_activities';
   static const String _scoresKey = 'activity_scores';
 
+  // This key needs to match the key used when the teacher assigns activities.
+  // If your assign service uses another key, we only change this line later.
+  static const String _assignedActivitiesKey = 'assigned_activities';
+
   static Future<List<String>> getCompletedActivities() async {
     final prefs = await SharedPreferences.getInstance();
     final completedJson = prefs.getString(_completedActivitiesKey);
@@ -102,6 +106,27 @@ class StudentProgressService {
     return jsonDecode(scoresJson);
   }
 
+  static Future<List<Map<String, dynamic>>> getAssignedActivities() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final assignedJson = prefs.getString(_assignedActivitiesKey);
+
+    if (assignedJson == null) {
+      return [];
+    }
+
+    final decoded = jsonDecode(assignedJson);
+
+    if (decoded is! List) {
+      return [];
+    }
+
+    return decoded
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+  }
+
   static Future<int> getTotalCompletedActivities() async {
     final completedActivities = await getCompletedActivities();
     return completedActivities.length;
@@ -121,6 +146,20 @@ class StudentProgressService {
     return scores.entries
         .where((entry) => entry.key.startsWith('${category}_'))
         .length;
+  }
+
+  static Future<int> getPendingActivitiesByCategory(String category) async {
+    final assignedActivities = await getAssignedActivities();
+
+    return assignedActivities.where((activity) {
+      final activityCategory =
+          activity['category']?.toString().toLowerCase().trim() ?? '';
+
+      final status = activity['status']?.toString().toLowerCase().trim() ?? '';
+
+      return activityCategory == category.toLowerCase().trim() &&
+          (status == 'pending' || status == 'assigned');
+    }).length;
   }
 
   static Future<int> getReviewNeededByCategory(String category) async {
@@ -161,7 +200,8 @@ class StudentProgressService {
         await getCompletedActivitiesByCategory('listening');
     final vocabularyCompleted =
         await getCompletedActivitiesByCategory('vocabulary');
-    final readingCompleted = await getCompletedActivitiesByCategory('reading');
+    final readingCompleted =
+        await getCompletedActivitiesByCategory('reading');
     final homeworkCompleted =
         await getCompletedActivitiesByCategory('homework');
 
@@ -170,6 +210,24 @@ class StudentProgressService {
       'vocabulary': vocabularyCompleted,
       'reading': readingCompleted,
       'homework': homeworkCompleted,
+    };
+  }
+
+  static Future<Map<String, int>> getPendingByCategories() async {
+    final listeningPending =
+        await getPendingActivitiesByCategory('listening');
+    final vocabularyPending =
+        await getPendingActivitiesByCategory('vocabulary');
+    final readingPending =
+        await getPendingActivitiesByCategory('reading');
+    final homeworkPending =
+        await getPendingActivitiesByCategory('homework');
+
+    return {
+      'listening': listeningPending,
+      'vocabulary': vocabularyPending,
+      'reading': readingPending,
+      'homework': homeworkPending,
     };
   }
 

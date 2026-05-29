@@ -1,0 +1,49 @@
+Listagem de caminhos de pasta para o volume Acer
+O n£mero de s‚rie do volume ‚ 00000042 62BF:8B4E
+C:\USERS\VITOR\DOCUMENTS\SPEAKNATION_APP\LIB
+³   main.dart
+³   
+ÃÄÄÄdata
+³       homework_data.dart
+³       listening_data.dart
+³       reading_data.dart
+³       vocabulary_data.dart
+³       
+ÃÄÄÄmodels
+³       activity_question.dart
+³       homework_activity.dart
+³       listening_exercise.dart
+³       reading_activity.dart
+³       vocabulary_quiz.dart
+³       
+ÃÄÄÄscreens
+³   ³   login_screen.dart
+³   ³   
+³   ÃÄÄÄhomework
+³   ³       homework_activity_screen.dart
+³   ³       homework_screen.dart
+³   ³       
+³   ÃÄÄÄlistening
+³   ³       listening_exercise_screen.dart
+³   ³       listening_screen.dart
+³   ³       
+³   ÃÄÄÄreading
+³   ³       reading_screen.dart
+³   ³       
+³   ÃÄÄÄstudent
+³   ³       student_home_screen.dart
+³   ³       student_profile_screen.dart
+³   ³       
+³   ÃÄÄÄteacher
+³   ³       teacher_home_screen.dart
+³   ³       
+³   ÀÄÄÄvocabulary
+³           vocabulary_quiz_screen.dart
+³           vocabulary_screen.dart
+³           
+ÃÄÄÄservices
+³       student_progress_service.dart
+³       
+ÀÄÄÄwidgets
+        practice_card.dart
+        

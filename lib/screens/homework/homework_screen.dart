@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/homework_data.dart';
+import '../../models/homework_activity.dart';
+import '../../services/student_progress_service.dart';
 import 'homework_activity_screen.dart';
 
 class HomeworkScreen extends StatefulWidget {
@@ -12,8 +13,8 @@ class HomeworkScreen extends StatefulWidget {
 }
 
 class _HomeworkScreenState extends State<HomeworkScreen> {
-  Map<String, bool> completedMap = {};
-  Map<String, bool> correctMap = {};
+  Map<String, int> activityScores = {};
+  Map<String, bool> completedActivities = {};
 
   @override
   void initState() {
@@ -22,26 +23,36 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
   }
 
   Future<void> loadHomeworkResults() async {
-    final prefs = await SharedPreferences.getInstance();
-
+    final Map<String, int> loadedScores = {};
     final Map<String, bool> loadedCompleted = {};
-    final Map<String, bool> loadedCorrect = {};
 
     for (final activity in homeworkActivities) {
-      loadedCompleted[activity.id] =
-          prefs.getBool('${activity.id}_completed') ?? false;
+      final score = await StudentProgressService.getActivityScore(
+        activityId: activity.id,
+        category: 'homework',
+      );
 
-      loadedCorrect[activity.id] =
-          prefs.getBool('${activity.id}_correct') ?? false;
+      final isCompleted = await StudentProgressService.isActivityCompleted(
+        activityId: activity.id,
+        category: 'homework',
+      );
+
+      loadedScores[activity.id] = score ?? -1;
+      loadedCompleted[activity.id] = isCompleted;
     }
 
+    if (!mounted) return;
+
     setState(() {
-      completedMap = loadedCompleted;
-      correctMap = loadedCorrect;
+      activityScores = loadedScores;
+      completedActivities = loadedCompleted;
     });
   }
 
-  Future<void> openActivity(BuildContext context, activity) async {
+  Future<void> openActivity(
+    BuildContext context,
+    HomeworkActivity activity,
+  ) async {
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -57,151 +68,183 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7FB),
+      backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
-        title: const Text('Homework'),
-        backgroundColor: const Color(0xFF6E59A5),
+        title: const Text('Homework Support'),
+        backgroundColor: const Color(0xFFB00020),
         foregroundColor: Colors.white,
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: homeworkActivities.length,
-        itemBuilder: (context, index) {
-          final activity = homeworkActivities[index];
-
-          final bool completed = completedMap[activity.id] ?? false;
-          final bool correct = correctMap[activity.id] ?? false;
-
-          return Card(
-            margin: const EdgeInsets.only(bottom: 16),
-            elevation: 2,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          const Text(
+            'Homework Support',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
             ),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(16),
+          ),
+
+          const SizedBox(height: 8),
+
+          const Text(
+            'Complete extra practice assigned by your teacher and track your results.',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 16,
+              height: 1.4,
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          for (final activity in homeworkActivities)
+            _homeworkActivityCard(
+              activity: activity,
               onTap: () => openActivity(context, activity),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _homeworkActivityCard({
+    required HomeworkActivity activity,
+    required VoidCallback onTap,
+  }) {
+    final int score = activityScores[activity.id] ?? -1;
+    final bool isCompleted = completedActivities[activity.id] ?? false;
+    final bool hasResult = score >= 0;
+
+    String statusText = 'Not started';
+    Color statusColor = Colors.white38;
+    IconData statusIcon = Icons.radio_button_unchecked;
+
+    if (hasResult) {
+      if (isCompleted) {
+        statusText = 'Completed • Accuracy: $score%';
+        statusColor = Colors.greenAccent;
+        statusIcon = Icons.check_circle;
+      } else {
+        statusText = 'Review Needed • Accuracy: $score%';
+        statusColor = Colors.orangeAccent;
+        statusIcon = Icons.info;
+      }
+    }
+
+    return Card(
+      color: const Color(0xFF1E1E1E),
+      elevation: 2,
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: const BorderSide(color: Colors.white12),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Row(
+            children: [
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFB00020).withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  isCompleted
+                      ? Icons.check_circle
+                      : hasResult
+                          ? Icons.info
+                          : Icons.assignment,
+                  color: isCompleted
+                      ? Colors.greenAccent
+                      : hasResult
+                          ? Colors.orangeAccent
+                          : const Color(0xFFB00020),
+                  size: 32,
+                ),
+              ),
+
+              const SizedBox(width: 16),
+
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: completed
-                            ? correct
-                                ? Colors.green.withValues(alpha: 0.12)
-                                : Colors.orange.withValues(alpha: 0.12)
-                            : const Color(0xFF6E59A5).withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Icon(
-                        completed
-                            ? correct
-                                ? Icons.check_circle_rounded
-                                : Icons.info_rounded
-                            : Icons.assignment_rounded,
-                        color: completed
-                            ? correct
-                                ? Colors.green
-                                : Colors.orange
-                            : const Color(0xFF6E59A5),
-                        size: 30,
+                    Text(
+                      activity.title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 19,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
 
-                    const SizedBox(width: 14),
+                    const SizedBox(height: 6),
 
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            activity.title,
-                            style: const TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                    Text(
+                      activity.description,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                        height: 1.35,
+                      ),
+                    ),
 
-                          const SizedBox(height: 6),
+                    const SizedBox(height: 8),
 
-                          Text(
-                            activity.description,
+                    Row(
+                      children: [
+                        Icon(
+                          statusIcon,
+                          color: statusColor,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            statusText,
                             style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey.shade700,
+                              color: statusColor,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-
-                          const SizedBox(height: 10),
-
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 5,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFD3E4FD),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(
-                                  activity.level,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF2F4B7C),
-                                  ),
-                                ),
-                              ),
-
-                              if (completed)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 5,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: correct
-                                        ? Colors.green.withValues(alpha: 0.15)
-                                        : Colors.orange.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    correct
-                                        ? 'Last result: Correct'
-                                        : 'Last result: Review needed',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: correct
-                                          ? Colors.green.shade700
-                                          : Colors.orange.shade800,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      size: 18,
-                      color: Colors.grey,
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
-            ),
-          );
-        },
+
+              const SizedBox(width: 12),
+
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFB00020),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  activity.level,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

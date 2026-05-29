@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../services/student_progress_service.dart';
+import '../login_screen.dart';
 
 class StudentProfileScreen extends StatefulWidget {
   const StudentProfileScreen({super.key});
@@ -14,6 +16,11 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
   int vocabularyCompleted = 0;
   int readingCompleted = 0;
   int homeworkCompleted = 0;
+
+  int listeningPending = 0;
+  int vocabularyPending = 0;
+  int readingPending = 0;
+  int homeworkPending = 0;
 
   int listeningReviewNeeded = 0;
   int vocabularyReviewNeeded = 0;
@@ -35,6 +42,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
 
   Future<void> loadProgress() async {
     final progress = await StudentProgressService.getProgressByCategory();
+    final pending = await StudentProgressService.getPendingByCategories();
     final reviews = await StudentProgressService.getReviewNeededByCategories();
     final averages = await StudentProgressService.getAverageScoresByCategory();
 
@@ -45,6 +53,11 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
       vocabularyCompleted = progress['vocabulary'] ?? 0;
       readingCompleted = progress['reading'] ?? 0;
       homeworkCompleted = progress['homework'] ?? 0;
+
+      listeningPending = pending['listening'] ?? 0;
+      vocabularyPending = pending['vocabulary'] ?? 0;
+      readingPending = pending['reading'] ?? 0;
+      homeworkPending = pending['homework'] ?? 0;
 
       listeningReviewNeeded = reviews['listening'] ?? 0;
       vocabularyReviewNeeded = reviews['vocabulary'] ?? 0;
@@ -60,12 +73,78 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
     });
   }
 
+  Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.remove('currentStudentName');
+    await prefs.remove('currentStudentLevel');
+    await prefs.remove('currentUserRole');
+
+    if (!mounted) return;
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const LoginScreen(),
+      ),
+      (route) => false,
+    );
+  }
+
+  Future<void> confirmLogout() async {
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1E1E1E),
+          title: const Text(
+            'Logout',
+            style: TextStyle(color: Colors.white),
+          ),
+          content: const Text(
+            'Do you want to leave this account?',
+            style: TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, false);
+              },
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Colors.white70),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, true);
+              },
+              child: const Text(
+                'Logout',
+                style: TextStyle(color: Color(0xFFE53935)),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldLogout == true) {
+      await logout();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final int totalCompleted = listeningCompleted +
         vocabularyCompleted +
         readingCompleted +
         homeworkCompleted;
+
+    final int totalPending = listeningPending +
+        vocabularyPending +
+        readingPending +
+        homeworkPending;
 
     final int totalReviewNeeded = listeningReviewNeeded +
         vocabularyReviewNeeded +
@@ -217,7 +296,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                 Text(
                   isLoadingProgress
                       ? 'Loading progress...'
-                      : '$totalCompleted approved activities • $totalReviewNeeded review needed',
+                      : '$totalPending pending activities • $totalCompleted approved activities • $totalReviewNeeded review needed',
                   style: const TextStyle(
                     color: Colors.white70,
                     fontSize: 15,
@@ -227,7 +306,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                 const SizedBox(height: 8),
 
                 const Text(
-                  'Completed means approved activities. Review Needed means activities attempted but not approved yet. Accuracy means your average score.',
+                  'Pending means assigned activities that still need to be completed. Approved means completed and accepted activities. Review Needed means activities attempted but not approved yet. Accuracy means your average score.',
                   style: TextStyle(
                     color: Colors.white54,
                     fontSize: 13,
@@ -240,6 +319,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                 progressRow(
                   icon: Icons.headphones,
                   title: 'Listening',
+                  pending: listeningPending,
                   completed: listeningCompleted,
                   reviewNeeded: listeningReviewNeeded,
                   averageScore: listeningAverage,
@@ -247,6 +327,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                 progressRow(
                   icon: Icons.quiz,
                   title: 'Vocabulary',
+                  pending: vocabularyPending,
                   completed: vocabularyCompleted,
                   reviewNeeded: vocabularyReviewNeeded,
                   averageScore: vocabularyAverage,
@@ -254,6 +335,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                 progressRow(
                   icon: Icons.menu_book,
                   title: 'Reading',
+                  pending: readingPending,
                   completed: readingCompleted,
                   reviewNeeded: readingReviewNeeded,
                   averageScore: readingAverage,
@@ -261,6 +343,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                 progressRow(
                   icon: Icons.assignment,
                   title: 'Homework',
+                  pending: homeworkPending,
                   completed: homeworkCompleted,
                   reviewNeeded: homeworkReviewNeeded,
                   averageScore: homeworkAverage,
@@ -302,6 +385,61 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
               ],
             ),
           ),
+
+          const SizedBox(height: 22),
+
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E1E1E),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: Colors.white12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Account',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'Use this option only when you want to leave this account or switch users.',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 15,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: OutlinedButton.icon(
+                    onPressed: confirmLogout,
+                    icon: const Icon(Icons.logout),
+                    label: const Text('Logout'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFFE53935),
+                      side: const BorderSide(color: Color(0xFFE53935)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      textStyle: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -310,6 +448,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
   Widget progressRow({
     required IconData icon,
     required String title,
+    required int pending,
     required int completed,
     required int reviewNeeded,
     required int averageScore,
@@ -345,7 +484,15 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Completed: $completed',
+                  'Pending: $pending',
+                  style: TextStyle(
+                    color: pending > 0 ? Colors.amberAccent : Colors.white38,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'Approved: $completed',
                   style: const TextStyle(
                     color: Colors.white60,
                     fontSize: 13,

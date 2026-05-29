@@ -1,237 +1,179 @@
 import 'package:flutter/material.dart';
 
-import '../../data/listening_data.dart';
-import '../../data/vocabulary_data.dart';
-import '../../data/homework_data.dart';
-import '../../data/reading_data.dart';
+import 'teacher_profile_screen.dart';
+import 'teacher_students_screen.dart';
 
 class TeacherHomeScreen extends StatelessWidget {
   const TeacherHomeScreen({super.key});
 
+  void _showComingSoon(BuildContext context, String featureName) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$featureName will be available soon.'),
+        backgroundColor: Colors.blueGrey,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _openScreen(BuildContext context, Widget screen) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => screen,
+      ),
+    );
+  }
+
+  Widget _buildDashboardCard({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      color: const Color(0xFF1E1E1E),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Row(
+            children: [
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF6E59A5).withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  icon,
+                  color: const Color(0xFFD3E4FD),
+                  size: 30,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right,
+                color: Colors.white54,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final int listeningCount = listeningExercises.length;
-    final int vocabularyCount = vocabularyQuizzes.length;
-    final int readingCount = readingActivities.length;
-    final int homeworkCount = homeworkActivities.length;
-
-    final int totalActivities =
-        listeningCount + vocabularyCount + readingCount + homeworkCount;
-
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
-        title: const Text('Teacher Area'),
-        backgroundColor: const Color(0xFFB00020),
+        backgroundColor: const Color(0xFF121212),
         foregroundColor: Colors.white,
+        elevation: 0,
+        title: const Text('Teacher Dashboard'),
+        actions: [
+          IconButton(
+            tooltip: 'Teacher Profile',
+            icon: const Icon(Icons.person_outline),
+            onPressed: () {
+              _openScreen(
+                context,
+                const TeacherProfileScreen(),
+              );
+            },
+          ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E1E1E),
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: Colors.white12),
-            ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Welcome, teacher!',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                SizedBox(height: 8),
-
-                Text(
-                  'Manage and offer extra English practice to your students.',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 16,
-                    height: 1.4,
-                  ),
-                ),
-              ],
+          const Text(
+            'Welcome, Teacher',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
             ),
           ),
-
+          const SizedBox(height: 8),
+          const Text(
+            'Manage your students, classes, activities and progress from here.',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 15,
+              height: 1.4,
+            ),
+          ),
           const SizedBox(height: 24),
 
-          _sectionCard(
-            title: 'Content Summary',
-            children: [
-              summaryRow(
-                icon: Icons.headphones,
-                title: 'Listening activities',
-                value: listeningCount.toString(),
-              ),
-              summaryRow(
-                icon: Icons.quiz,
-                title: 'Vocabulary quizzes',
-                value: vocabularyCount.toString(),
-              ),
-              summaryRow(
-                icon: Icons.menu_book,
-                title: 'Reading activities',
-                value: readingCount.toString(),
-              ),
-              summaryRow(
-                icon: Icons.assignment,
-                title: 'Homework activities',
-                value: homeworkCount.toString(),
-              ),
-              const Divider(color: Colors.white12, height: 28),
-              summaryRow(
-                icon: Icons.dashboard,
-                title: 'Total activities',
-                value: totalActivities.toString(),
-              ),
-            ],
+          _buildDashboardCard(
+            context: context,
+            icon: Icons.person,
+            title: 'Students',
+            subtitle:
+                'View students, assign activities and check individual progress.',
+            onTap: () {
+              _openScreen(
+                context,
+                const TeacherStudentsScreen(),
+              );
+            },
           ),
 
-          const SizedBox(height: 20),
-
-          _sectionCard(
-            title: 'Student Access Code',
-            children: const [
-              Text(
-                'Share this code with your students so they can access the student area:',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 15,
-                  height: 1.4,
-                ),
-              ),
-
-              SizedBox(height: 16),
-
-              SelectableText(
-                'ALUNO123',
-                style: TextStyle(
-                  color: Color(0xFFB00020),
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.5,
-                ),
-              ),
-
-              SizedBox(height: 8),
-
-              Text(
-                'Temporary MVP code. In future versions, each teacher can have their own code.',
-                style: TextStyle(
-                  color: Colors.white38,
-                  fontSize: 13,
-                  height: 1.4,
-                ),
-              ),
-            ],
+          _buildDashboardCard(
+            context: context,
+            icon: Icons.groups,
+            title: 'Classes',
+            subtitle: 'Manage groups, class schedules and class activities.',
+            onTap: () => _showComingSoon(context, 'Classes'),
           ),
 
-          const SizedBox(height: 20),
-
-          _sectionCard(
-            title: 'How to use this app',
-            children: const [
-              Text(
-                'Use this app as extra practice after your classes. Students can review listening, vocabulary, reading and homework activities at home.',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 15,
-                  height: 1.5,
-                ),
-              ),
-
-              SizedBox(height: 12),
-
-              Text(
-                'In future versions, teachers will be able to create activities, assign tasks and follow student progress.',
-                style: TextStyle(
-                  color: Colors.white54,
-                  fontSize: 14,
-                  height: 1.5,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _sectionCard({
-    required String title,
-    required List<Widget> children,
-  }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 21,
-              fontWeight: FontWeight.bold,
-            ),
+          _buildDashboardCard(
+            context: context,
+            icon: Icons.assignment,
+            title: 'Activities',
+            subtitle:
+                'View available homework, listening and vocabulary activities.',
+            onTap: () => _showComingSoon(context, 'Activities'),
           ),
 
-          const SizedBox(height: 16),
-
-          ...children,
-        ],
-      ),
-    );
-  }
-
-  Widget summaryRow({
-    required IconData icon,
-    required String title,
-    required String value,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Row(
-        children: [
-          Icon(
-            icon,
-            color: const Color(0xFFB00020),
-            size: 28,
-          ),
-
-          const SizedBox(width: 12),
-
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 16,
-              ),
-            ),
-          ),
-
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+          _buildDashboardCard(
+            context: context,
+            icon: Icons.bar_chart,
+            title: 'Progress',
+            subtitle: 'Track completed activities and student development.',
+            onTap: () => _showComingSoon(context, 'Progress'),
           ),
         ],
       ),

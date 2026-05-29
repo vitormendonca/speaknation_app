@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import '../data/students_data.dart';
 import 'student/student_home_screen.dart';
 import 'teacher/teacher_home_screen.dart';
 
@@ -15,8 +17,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   String? errorMessage;
 
-  static const String studentCode = 'ALUNO123';
-  static const String teacherCode = 'TEACHER123';
+  static const String teacherCode = 'teacher123';
 
   @override
   void dispose() {
@@ -24,28 +25,72 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _loginWithCode() {
-    final String code = accessCodeController.text.trim().toUpperCase();
+  Future<void> _saveStudentSession(StudentData student) async {
+    final prefs = await SharedPreferences.getInstance();
 
-    if (code == studentCode) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const StudentHomeScreen(),
-        ),
-      );
-    } else if (code == teacherCode) {
+    await prefs.setString('currentStudentId', student.id);
+    await prefs.setString('currentStudentName', student.name);
+    await prefs.setString('currentStudentLevel', student.level);
+    await prefs.setString('currentStudentAccessCode', student.accessCode);
+    await prefs.setString('currentUserRole', 'student');
+  }
+
+  Future<void> _saveTeacherSession() async {
+  final prefs = await SharedPreferences.getInstance();
+
+  await prefs.setString('currentUserRole', 'teacher');
+  await prefs.setString('currentTeacherId', 'teacher_001');
+  await prefs.setString('currentTeacherName', 'Teacher');
+
+  await prefs.remove('currentStudentId');
+  await prefs.remove('currentStudentName');
+  await prefs.remove('currentStudentLevel');
+  await prefs.remove('currentStudentAccessCode');
+}
+
+  Future<void> _loginWithCode() async {
+    final String code = accessCodeController.text.trim().toLowerCase();
+
+    if (code == teacherCode) {
+      await _saveTeacherSession();
+
+      if (!mounted) return;
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (context) => const TeacherHomeScreen(),
         ),
       );
-    } else {
-      setState(() {
-        errorMessage = 'Invalid access code. Please check and try again.';
-      });
+      return;
     }
+
+    StudentData? matchedStudent;
+
+    for (final student in studentsData) {
+      if (student.accessCode.toLowerCase() == code) {
+        matchedStudent = student;
+        break;
+      }
+    }
+
+    if (matchedStudent != null) {
+      await _saveStudentSession(matchedStudent);
+
+      if (!mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const StudentHomeScreen(),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      errorMessage = 'Invalid access code. Please check and try again.';
+    });
   }
 
   void _fillDemoCode(String code) {
@@ -53,6 +98,25 @@ class _LoginScreenState extends State<LoginScreen> {
       accessCodeController.text = code;
       errorMessage = null;
     });
+  }
+
+  Widget _buildDemoCodeButton({
+    required String label,
+    required String code,
+  }) {
+    return OutlinedButton(
+      onPressed: () => _fillDemoCode(code),
+      style: OutlinedButton.styleFrom(
+        side: const BorderSide(color: Colors.white24),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(color: Colors.white),
+      ),
+    );
   }
 
   @override
@@ -120,7 +184,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 TextField(
                   controller: accessCodeController,
-                  textCapitalization: TextCapitalization.characters,
+                  textCapitalization: TextCapitalization.none,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -129,7 +193,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   decoration: InputDecoration(
                     labelText: 'Access code',
                     labelStyle: const TextStyle(color: Colors.white70),
-                    hintText: 'Example: ALUNO123',
+                    hintText: 'Example: joao123',
                     hintStyle: const TextStyle(color: Colors.white38),
                     filled: true,
                     fillColor: const Color(0xFF121212),
@@ -215,45 +279,45 @@ class _LoginScreenState extends State<LoginScreen> {
                       Row(
                         children: [
                           Expanded(
-                            child: OutlinedButton(
-                              onPressed: () => _fillDemoCode(studentCode),
-                              style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: Colors.white24),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: const Text(
-                                'Student',
-                                style: TextStyle(color: Colors.white),
-                              ),
+                            child: _buildDemoCodeButton(
+                              label: 'João',
+                              code: 'joao123',
                             ),
                           ),
-
                           const SizedBox(width: 10),
-
                           Expanded(
-                            child: OutlinedButton(
-                              onPressed: () => _fillDemoCode(teacherCode),
-                              style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: Colors.white24),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: const Text(
-                                'Teacher',
-                                style: TextStyle(color: Colors.white),
-                              ),
+                            child: _buildDemoCodeButton(
+                              label: 'Maria',
+                              code: 'maria123',
                             ),
                           ),
                         ],
                       ),
 
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildDemoCodeButton(
+                              label: 'Ana',
+                              code: 'ana123',
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _buildDemoCodeButton(
+                              label: 'Teacher',
+                              code: teacherCode,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 10),
 
                       const Text(
-                        'Student: ALUNO123 • Teacher: TEACHER123',
+                        'Students: joao123, maria123, ana123 • Teacher: teacher123',
                         style: TextStyle(
                           color: Colors.white38,
                           fontSize: 12,

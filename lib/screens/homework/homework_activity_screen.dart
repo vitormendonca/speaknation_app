@@ -22,6 +22,9 @@ class _HomeworkActivityScreenState extends State<HomeworkActivityScreen> {
   bool lastCompleted = false;
   int? lastScore;
 
+  bool reviewMode = false;
+  int? currentAttemptScore;
+
   @override
   void initState() {
     super.initState();
@@ -44,37 +47,53 @@ class _HomeworkActivityScreenState extends State<HomeworkActivityScreen> {
     setState(() {
       lastCompleted = completed;
       lastScore = score;
+      reviewMode = completed;
     });
   }
-Future<void> checkAnswer() async {
-  final bool isCorrect = selectedAnswer == widget.activity.correctAnswer;
-  final int score = isCorrect ? 100 : 0;
 
-  if (isCorrect) {
-    await StudentProgressService.markActivityAsCompleted(
-      activityId: widget.activity.id,
-      category: 'homework',
-    );
+  Future<void> checkAnswer() async {
+    final bool isCorrect = selectedAnswer == widget.activity.correctAnswer;
+    final int score = isCorrect ? 100 : 0;
+
+    // If the activity is already completed, this is only review/practice.
+    // Do not overwrite the saved progress or saved score.
+    if (!reviewMode) {
+      if (isCorrect) {
+        await StudentProgressService.markActivityAsCompleted(
+          activityId: widget.activity.id,
+          category: 'homework',
+        );
+      }
+
+      await StudentProgressService.saveActivityScore(
+        activityId: widget.activity.id,
+        category: 'homework',
+        score: score,
+      );
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      answered = true;
+      currentAttemptScore = score;
+
+      if (!reviewMode) {
+        lastCompleted = isCorrect;
+        lastScore = score;
+
+        if (isCorrect) {
+          reviewMode = true;
+        }
+      }
+    });
   }
 
-  await StudentProgressService.saveActivityScore(
-    activityId: widget.activity.id,
-    category: 'homework',
-    score: score,
-  );
-
-  if (!mounted) return;
-
-  setState(() {
-    answered = true;
-    lastCompleted = isCorrect;
-    lastScore = score;
-  });
-}
   void tryAgain() {
     setState(() {
       selectedAnswer = null;
       answered = false;
+      currentAttemptScore = null;
     });
   }
 
@@ -93,7 +112,56 @@ Future<void> checkAnswer() async {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          if (lastCompleted && lastScore != null && !answered) ...[
+          if (reviewMode && lastScore != null && !answered) ...[
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E1E1E),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.greenAccent),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.check_circle,
+                    color: Colors.greenAccent,
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Activity completed ✅\nYou can review it, but your saved score will not change.',
+                      style: TextStyle(
+                        color: Colors.greenAccent,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E1E1E),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white12),
+              ),
+              child: Text(
+                lastCorrect
+                    ? 'Best score: $lastScore%'
+                    : 'Saved score: $lastScore%',
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+          ] else if (lastCompleted && lastScore != null && !answered) ...[
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -186,9 +254,9 @@ Future<void> checkAnswer() async {
                   borderRadius: BorderRadius.circular(14),
                 ),
               ),
-              child: const Text(
-                'Check Answer',
-                style: TextStyle(
+              child: Text(
+                reviewMode ? 'Check Review' : 'Check Answer',
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 17,
                   fontWeight: FontWeight.bold,
@@ -222,9 +290,13 @@ Future<void> checkAnswer() async {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          isCorrect
-                              ? 'Completed: Correct'
-                              : 'Completed: Review needed',
+                          reviewMode
+                              ? isCorrect
+                                  ? 'Review: Correct'
+                                  : 'Review: Try Again'
+                              : isCorrect
+                                  ? 'Completed: Correct'
+                                  : 'Review Needed',
                           style: TextStyle(
                             color: isCorrect
                                 ? Colors.greenAccent
@@ -240,19 +312,32 @@ Future<void> checkAnswer() async {
                   const SizedBox(height: 10),
 
                   Text(
-                    isCorrect
-                        ? 'Great job. This activity is completed. Score: 100%'
-                        : 'Correct answer: ${widget.activity.correctAnswer}',
+                    reviewMode
+                        ? isCorrect
+                            ? 'Good review. Your saved score is still ${lastScore ?? 100}%.'
+                            : 'Correct answer: ${widget.activity.correctAnswer}'
+                        : isCorrect
+                            ? 'Great job. This activity is completed. Score: 100%'
+                            : 'Correct answer: ${widget.activity.correctAnswer}',
                     style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 16,
                     ),
                   ),
 
-                  if (!isCorrect) ...[
+                  if (reviewMode) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      'This was practice only. Your saved progress did not change.',
+                      style: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ] else if (!isCorrect) ...[
                     const SizedBox(height: 6),
                     const Text(
-                      'Review the example and try again later. Score: 0%',
+                      'Review the example and try again. Score: 0%',
                       style: TextStyle(
                         color: Colors.white54,
                         fontSize: 14,
@@ -265,40 +350,42 @@ Future<void> checkAnswer() async {
 
             const SizedBox(height: 24),
 
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton.icon(
-                onPressed: tryAgain,
-                icon: const Icon(
-                  Icons.refresh,
-                  color: Colors.white,
-                ),
-                label: const Text(
-                  'Try Again',
-                  style: TextStyle(
+            if (!isCorrect) ...[
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton.icon(
+                  onPressed: tryAgain,
+                  icon: const Icon(
+                    Icons.refresh,
                     color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
                   ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFB00020),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+                  label: const Text(
+                    'Try Again',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFB00020),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
                 ),
               ),
-            ),
 
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
+            ],
 
             SizedBox(
               width: double.infinity,
               height: 52,
               child: ElevatedButton.icon(
                 onPressed: () {
-                  Navigator.pop(context);
+                  Navigator.pop(context, true);
                 },
                 icon: const Icon(
                   Icons.arrow_back,
