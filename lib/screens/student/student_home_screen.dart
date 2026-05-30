@@ -6,10 +6,6 @@ import '../../services/assignment_service.dart';
 import '../../services/learning_path_progress_service.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/theme_controller.dart';
-import '../homework/homework_screen.dart';
-import '../listening/listening_screen.dart';
-import '../reading/reading_screen.dart';
-import '../vocabulary/vocabulary_screen.dart';
 import 'student_assignments_screen.dart';
 import 'student_learning_path_screen.dart';
 import 'student_level_tests_screen.dart';
@@ -184,8 +180,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             _assignedWorkPanel(context),
             const SizedBox(height: 22),
             _learningPathPanel(context),
-            const SizedBox(height: 22),
-            _freePracticePanel(context),
             const SizedBox(height: 10),
             Text(
               'Your teacher guides the same learning path you can study on your own.',
@@ -222,7 +216,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
       action = () => openScreen(context, const StudentAssignmentsScreen());
     } else {
       actionTitle = 'Continue your A1 path';
-      actionLabel = 'Start Practice';
+      actionLabel = 'Continue Learning';
       actionIcon = Icons.play_arrow_rounded;
       action = () => openScreen(
             context,
@@ -709,80 +703,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _freePracticePanel(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _sectionHeader(
-          context: context,
-          title: 'Free Practice',
-          subtitle: 'Study freely when you have no assigned activity.',
-        ),
-        const SizedBox(height: 12),
-        _quickPracticeButton(
-          context: context,
-          icon: Icons.headphones_outlined,
-          title: 'Listening practice',
-          onTap: () => openScreen(context, const ListeningScreen()),
-        ),
-        _quickPracticeButton(
-          context: context,
-          icon: Icons.mic_none_outlined,
-          title: 'Speaking path',
-          onTap: () => openScreen(
-            context,
-            const StudentLearningPathScreen(skillId: 'speaking'),
-          ),
-        ),
-        _quickPracticeButton(
-          context: context,
-          icon: Icons.style_outlined,
-          title: 'Vocabulary practice',
-          onTap: () => openScreen(context, const VocabularyScreen()),
-        ),
-        _quickPracticeButton(
-          context: context,
-          icon: Icons.menu_book_outlined,
-          title: 'Reading practice',
-          onTap: () => openScreen(context, const ReadingScreen()),
-        ),
-        _quickPracticeButton(
-          context: context,
-          icon: Icons.edit_note_outlined,
-          title: 'Grammar practice',
-          onTap: () => openScreen(context, const HomeworkScreen()),
-        ),
-      ],
-    );
-  }
-
-  Widget _quickPracticeButton({
-    required BuildContext context,
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-  }) {
-    final colors = Theme.of(context).colorScheme;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: OutlinedButton.icon(
-        onPressed: onTap,
-        icon: Icon(icon),
-        label: Align(
-          alignment: Alignment.centerLeft,
-          child: Text(title),
-        ),
-        style: OutlinedButton.styleFrom(
-          foregroundColor: colors.onSurface,
-          side: BorderSide(color: _borderColor(context)),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          alignment: Alignment.centerLeft,
         ),
       ),
     );
