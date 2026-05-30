@@ -185,7 +185,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             _freePracticePanel(context),
             const SizedBox(height: 10),
             Text(
-              'Progress is based on activities assigned to this student.',
+              'Learning Path and Teacher Assigned Work are tracked separately.',
               style: TextStyle(
                 color: colors.onSurfaceVariant,
                 fontSize: 12,
@@ -334,7 +334,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
               child: _metricCard(
                 context: context,
                 icon: Icons.assignment_outlined,
-                label: 'Assigned',
+                label: 'Teacher Work',
                 value: totalAssigned.toString(),
                 color: AppTheme.brandRed,
               ),
@@ -344,8 +344,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
               child: _metricCard(
                 context: context,
                 icon: Icons.check_circle_outline,
-                label: 'Done',
-                value: totalCompleted.toString(),
+                label: 'Lessons Done',
+                value: pathCompleted.toString(),
                 color: AppTheme.success,
               ),
             ),
@@ -354,7 +354,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
               child: _metricCard(
                 context: context,
                 icon: Icons.rate_review_outlined,
-                label: 'Review',
+                label: 'Teacher Review',
                 value: totalReviewNeeded.toString(),
                 color: AppTheme.warning,
               ),
@@ -415,8 +415,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         children: [
           _sectionHeader(
             context: context,
-            title: 'Assigned Work',
-            subtitle: 'Activities from your teacher.',
+            title: 'Teacher Assigned Work',
+            subtitle: 'Only activities assigned by your teacher appear here.',
             actionLabel: 'Open',
             onAction: () => openScreen(
               context,
