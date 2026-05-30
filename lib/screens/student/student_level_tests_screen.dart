@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../services/learning_path_progress_service.dart';
 import '../../theme/app_theme.dart';
+import 'student_placement_test_screen.dart';
 
 class StudentLevelTestsScreen extends StatefulWidget {
   const StudentLevelTestsScreen({super.key});
@@ -14,7 +15,6 @@ class StudentLevelTestsScreen extends StatefulWidget {
 class _StudentLevelTestsScreenState extends State<StudentLevelTestsScreen> {
   Set<String> validatedLevels = {};
   bool isLoading = true;
-  bool isSaving = false;
 
   @override
   void initState() {
@@ -34,34 +34,18 @@ class _StudentLevelTestsScreenState extends State<StudentLevelTestsScreen> {
   }
 
   Future<void> _validateA1() async {
-    if (isSaving || validatedLevels.contains('A1')) {
+    if (validatedLevels.contains('A1')) {
       return;
     }
 
-    setState(() {
-      isSaving = true;
-    });
-
-    await LearningPathProgressService.validateLevel('A1');
-
-    if (!mounted) return;
-
-    await _loadValidatedLevels();
-
-    if (!mounted) return;
-
-    setState(() {
-      isSaving = false;
-    });
-
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('A1 validated. Your A1 path is now complete.'),
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(milliseconds: 1400),
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const StudentPlacementTestScreen(level: 'A1'),
       ),
     );
+
+    await _loadValidatedLevels();
   }
 
   @override
@@ -140,8 +124,8 @@ class _StudentLevelTestsScreenState extends State<StudentLevelTestsScreen> {
                 level: 'A1',
                 title: 'A1 Placement Check',
                 description:
-                    'Development version: validates the full A1 path across '
-                    'Listening, Speaking, Reading, Vocabulary and Grammar.',
+                    'Sample test with mixed A1 questions. Score 85% or higher '
+                    'to validate this level and continue from the next path.',
                 isValidated: validatedLevels.contains('A1'),
                 onTap: _validateA1,
               ),
@@ -193,7 +177,7 @@ class _StudentLevelTestsScreenState extends State<StudentLevelTestsScreen> {
         borderRadius: BorderRadius.circular(8),
         child: InkWell(
           borderRadius: BorderRadius.circular(8),
-          onTap: isLocked || isValidated || isSaving ? null : onTap,
+          onTap: isLocked || isValidated ? null : onTap,
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
