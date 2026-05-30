@@ -12,6 +12,7 @@ import '../reading/reading_screen.dart';
 import '../vocabulary/vocabulary_screen.dart';
 import 'student_assignments_screen.dart';
 import 'student_learning_path_screen.dart';
+import 'student_level_tests_screen.dart';
 import 'student_profile_screen.dart';
 
 class StudentHomeScreen extends StatefulWidget {
@@ -178,6 +179,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             const SizedBox(height: 18),
             _metricGrid(context),
             const SizedBox(height: 22),
+            _levelCheckPanel(context),
+            const SizedBox(height: 22),
             _assignedWorkPanel(context),
             const SizedBox(height: 22),
             _learningPathPanel(context),
@@ -185,7 +188,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             _freePracticePanel(context),
             const SizedBox(height: 10),
             Text(
-              'Learning Path and Teacher Assigned Work are tracked separately.',
+              'Your teacher guides the same learning path you can study on your own.',
               style: TextStyle(
                 color: colors.onSurfaceVariant,
                 fontSize: 12,
@@ -221,7 +224,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
       actionTitle = 'Continue your A1 path';
       actionLabel = 'Start Practice';
       actionIcon = Icons.play_arrow_rounded;
-      action = () => openScreen(context, const ListeningScreen());
+      action = () => openScreen(
+            context,
+            const StudentLearningPathScreen(skillId: 'listening'),
+          );
     }
 
     return _panel(
@@ -334,7 +340,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
               child: _metricCard(
                 context: context,
                 icon: Icons.assignment_outlined,
-                label: 'Teacher Work',
+                label: 'Guided',
                 value: totalAssigned.toString(),
                 color: AppTheme.brandRed,
               ),
@@ -354,7 +360,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
               child: _metricCard(
                 context: context,
                 icon: Icons.rate_review_outlined,
-                label: 'Teacher Review',
+                label: 'To Review',
                 value: totalReviewNeeded.toString(),
                 color: AppTheme.warning,
               ),
@@ -404,6 +410,67 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     );
   }
 
+  Widget _levelCheckPanel(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return _panel(
+      context: context,
+      padding: const EdgeInsets.all(18),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: AppTheme.brandRed.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(
+              Icons.workspace_premium_outlined,
+              color: AppTheme.brandRed,
+              size: 28,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Already know some English?',
+                  style: TextStyle(
+                    color: colors.onSurface,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Take a level check to validate what you know and start '
+                  'from the right point.',
+                  style: TextStyle(
+                    color: colors.onSurfaceVariant,
+                    fontSize: 13,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          IconButton(
+            tooltip: 'Open level checks',
+            onPressed: () => openScreen(
+              context,
+              const StudentLevelTestsScreen(),
+            ),
+            icon: const Icon(Icons.arrow_forward_ios_rounded),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _assignedWorkPanel(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
 
@@ -415,8 +482,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         children: [
           _sectionHeader(
             context: context,
-            title: 'Teacher Assigned Work',
-            subtitle: 'Only activities assigned by your teacher appear here.',
+            title: 'Teacher Guidance',
+            subtitle: 'Recommendations from your teacher for this same path.',
             actionLabel: 'Open',
             onAction: () => openScreen(
               context,
@@ -433,21 +500,21 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             _statusLine(
               context: context,
               icon: Icons.schedule_outlined,
-              label: 'Pending',
+              label: 'Recommended',
               value: totalPending,
               color: AppTheme.warning,
             ),
             _statusLine(
               context: context,
               icon: Icons.check_circle_outline,
-              label: 'Completed',
+              label: 'Completed with guidance',
               value: totalCompleted,
               color: AppTheme.success,
             ),
             _statusLine(
               context: context,
               icon: Icons.rate_review_outlined,
-              label: 'Needs Review',
+              label: 'Needs teacher review',
               value: totalReviewNeeded,
               color: AppTheme.warning,
             ),

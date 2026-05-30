@@ -41,6 +41,7 @@ class LearningPathSkillProgress {
 
 class LearningPathProgressService {
   static const String _completedStepsPrefix = 'learning_path_completed_steps';
+  static const String _validatedLevelsPrefix = 'learning_path_validated_levels';
 
   static Future<Set<String>> getCompletedStepIds() async {
     final prefs = await SharedPreferences.getInstance();
@@ -73,6 +74,48 @@ class LearningPathProgressService {
   static Future<bool> isStepCompleted(String stepId) async {
     final completed = await getCompletedStepIds();
     return completed.contains(stepId);
+  }
+
+  static Future<Set<String>> getValidatedLevels() async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = await _validatedLevelsKey(prefs);
+    final jsonString = prefs.getString(key);
+
+    if (jsonString == null || jsonString.isEmpty) {
+      return {};
+    }
+
+    final decoded = jsonDecode(jsonString);
+
+    if (decoded is! List) {
+      return {};
+    }
+
+    return decoded.map((item) => item.toString()).toSet();
+  }
+
+  static Future<bool> isLevelValidated(String level) async {
+    final validatedLevels = await getValidatedLevels();
+    return validatedLevels.contains(level.toUpperCase());
+  }
+
+  static Future<void> validateLevel(String level) async {
+    final normalizedLevel = level.toUpperCase();
+    final prefs = await SharedPreferences.getInstance();
+    final completedKey = await _completedStepsKey(prefs);
+    final validatedKey = await _validatedLevelsKey(prefs);
+    final completed = await getCompletedStepIds();
+    final validatedLevels = await getValidatedLevels();
+
+    final levelStepIds = learningPathSteps
+        .where((step) => step.level.toUpperCase() == normalizedLevel)
+        .map((step) => step.id);
+
+    completed.addAll(levelStepIds);
+    validatedLevels.add(normalizedLevel);
+
+    await prefs.setString(completedKey, jsonEncode(completed.toList()));
+    await prefs.setString(validatedKey, jsonEncode(validatedLevels.toList()));
   }
 
   static bool isStepUnlocked({
@@ -161,6 +204,18 @@ class LearningPathProgressService {
             : 'guest';
 
     return '${_completedStepsPrefix}_${_normalizeKey(studentKey)}';
+  }
+
+  static Future<String> _validatedLevelsKey(SharedPreferences prefs) async {
+    final studentId = prefs.getString('currentStudentId');
+    final studentName = prefs.getString('currentStudentName');
+    final studentKey = (studentId?.isNotEmpty ?? false)
+        ? studentId!
+        : (studentName?.isNotEmpty ?? false)
+            ? studentName!
+            : 'guest';
+
+    return '${_validatedLevelsPrefix}_${_normalizeKey(studentKey)}';
   }
 
   static String _normalizeKey(String value) {
