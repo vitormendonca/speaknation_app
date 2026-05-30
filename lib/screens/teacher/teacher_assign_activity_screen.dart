@@ -41,39 +41,38 @@ class _TeacherAssignActivityScreenState
   final List<Map<String, String>> availableActivities = const [
     {
       'id': 'homework_001',
-      'title': 'Basic Greetings',
+      'title': 'Basic Introductions',
       'type': 'Homework',
       'level': 'A1',
-      'description': 'Practice simple greetings and introductions.',
+      'description': 'Practice simple introductions in English.',
     },
     {
-      'id': 'listening_001',
+      'id': 'listening_a1_morning_routine',
       'title': 'Morning Routine',
       'type': 'Listening',
       'level': 'A1',
       'description': 'Listen to a short audio about a daily routine.',
     },
     {
-      'id': 'vocabulary_001',
-      'title': 'Daily Vocabulary',
+      'id': 'vocabulary_a1_greetings',
+      'title': 'Greetings and Introductions',
       'type': 'Vocabulary',
       'level': 'A1',
-      'description': 'Review common daily vocabulary words.',
+      'description': 'Practice basic greetings and personal introductions.',
     },
     {
       'id': 'homework_002',
-      'title': 'Simple Present Practice',
+      'title': 'Personal Information',
       'type': 'Homework',
-      'level': 'A2',
-      'description':
-          'Practice affirmative and negative simple present sentences.',
+      'level': 'A1',
+      'description': 'Practice questions about age, city, and job.',
     },
     {
       'id': 'reading_001',
-      'title': 'A Short Introduction',
+      'title': 'A Busy Morning',
       'type': 'Reading',
       'level': 'A1',
-      'description': 'Read a short text and answer comprehension questions.',
+      'description': 'Read a short text about a morning routine.',
     },
   ];
 

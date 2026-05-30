@@ -7,7 +7,7 @@ class ListeningExercise {
   final String level;
 
   // Path used by AssetSource.
-  // Example: audio/morning_routine.mp3
+  // Example: audio/airport_conversation.mp3
   final String audioPath;
 
   // Text version of the audio.
