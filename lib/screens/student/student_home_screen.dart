@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/assigned_activity.dart';
 import '../../services/assignment_service.dart';
+import '../../services/learning_path_progress_service.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/theme_controller.dart';
 import '../homework/homework_screen.dart';
@@ -10,6 +11,7 @@ import '../listening/listening_screen.dart';
 import '../reading/reading_screen.dart';
 import '../vocabulary/vocabulary_screen.dart';
 import 'student_assignments_screen.dart';
+import 'student_learning_path_screen.dart';
 import 'student_profile_screen.dart';
 
 class StudentHomeScreen extends StatefulWidget {
@@ -43,6 +45,14 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     'homework': 0,
   };
 
+  final Map<String, bool> finalTestBySkill = {
+    'listening': false,
+    'speaking': false,
+    'reading': false,
+    'vocabulary': false,
+    'homework': false,
+  };
+
   bool isLoadingProgress = true;
 
   @override
@@ -60,6 +70,9 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         await AssignmentService.getAssignedActivitiesByStudentName(
       savedStudentName,
     );
+
+    final pathProgress =
+        await LearningPathProgressService.getAllSkillProgress();
 
     if (!mounted) return;
 
@@ -84,32 +97,15 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           .length;
 
       for (final skill in completedBySkill.keys) {
-        completedBySkill[skill] = _countBySkill(
-          assignments: assignments,
-          skill: skill,
-          statuses: const {'Completed', 'Reviewed'},
-        );
+        final skillProgress = pathProgress[skill];
 
-        reviewBySkill[skill] = _countBySkill(
-          assignments: assignments,
-          skill: skill,
-          statuses: const {'Review Needed'},
-        );
+        completedBySkill[skill] = skillProgress?.completedLessons ?? 0;
+        reviewBySkill[skill] = skillProgress?.completedReviews ?? 0;
+        finalTestBySkill[skill] = skillProgress?.finalTestCompleted ?? false;
       }
 
       isLoadingProgress = false;
     });
-  }
-
-  int _countBySkill({
-    required List<AssignedActivity> assignments,
-    required String skill,
-    required Set<String> statuses,
-  }) {
-    return assignments.where((assignment) {
-      final category = assignment.category.toLowerCase().trim();
-      return category == skill && statuses.contains(assignment.status);
-    }).length;
   }
 
   Future<void> refreshProgress() async {
@@ -478,7 +474,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           skill: 'listening',
           icon: Icons.headphones_outlined,
           color: AppTheme.info,
-          onTap: () => openScreen(context, const ListeningScreen()),
+          onTap: () => openScreen(
+            context,
+            const StudentLearningPathScreen(skillId: 'listening'),
+          ),
         ),
         _skillPathTile(
           context: context,
@@ -487,8 +486,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           skill: 'speaking',
           icon: Icons.mic_none_outlined,
           color: const Color(0xFF7B1FA2),
-          planned: true,
-          onTap: _showSpeakingComingSoon,
+          onTap: () => openScreen(
+            context,
+            const StudentLearningPathScreen(skillId: 'speaking'),
+          ),
         ),
         _skillPathTile(
           context: context,
@@ -497,7 +498,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           skill: 'reading',
           icon: Icons.menu_book_outlined,
           color: const Color(0xFF00897B),
-          onTap: () => openScreen(context, const ReadingScreen()),
+          onTap: () => openScreen(
+            context,
+            const StudentLearningPathScreen(skillId: 'reading'),
+          ),
         ),
         _skillPathTile(
           context: context,
@@ -506,7 +510,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           skill: 'vocabulary',
           icon: Icons.style_outlined,
           color: AppTheme.brandRed,
-          onTap: () => openScreen(context, const VocabularyScreen()),
+          onTap: () => openScreen(
+            context,
+            const StudentLearningPathScreen(skillId: 'vocabulary'),
+          ),
         ),
         _skillPathTile(
           context: context,
@@ -515,7 +522,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           skill: 'homework',
           icon: Icons.edit_note_outlined,
           color: const Color(0xFF5E35B1),
-          onTap: () => openScreen(context, const HomeworkScreen()),
+          onTap: () => openScreen(
+            context,
+            const StudentLearningPathScreen(skillId: 'homework'),
+          ),
         ),
       ],
     );
@@ -529,18 +539,15 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     required IconData icon,
     required Color color,
     required VoidCallback onTap,
-    bool planned = false,
   }) {
     final colors = Theme.of(context).colorScheme;
     final completed = completedBySkill[skill] ?? 0;
-    final reviewNeeded = reviewBySkill[skill] ?? 0;
+    final completedReviews = reviewBySkill[skill] ?? 0;
+    final finalTestDone = finalTestBySkill[skill] ?? false;
     final double progress = (completed / 12).clamp(0.0, 1.0).toDouble();
-    final nextReviewAt = completed < 3 ? 3 : ((completed ~/ 3) + 1) * 3;
-    final reviewLabel = reviewNeeded > 0
-        ? '$reviewNeeded needs review'
-        : planned
-            ? 'Planned'
-            : 'Next review at ${nextReviewAt.clamp(3, 12)}/12';
+    final reviewLabel = finalTestDone
+        ? 'Test passed'
+        : '$completedReviews/4 reviews';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -597,11 +604,9 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                     ),
                     const SizedBox(width: 8),
                     Icon(
-                      planned
-                          ? Icons.lock_outline
-                          : Icons.arrow_forward_ios_rounded,
+                      Icons.arrow_forward_ios_rounded,
                       color: colors.onSurfaceVariant,
-                      size: planned ? 20 : 16,
+                      size: 16,
                     ),
                   ],
                 ),
@@ -609,7 +614,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(99),
                   child: LinearProgressIndicator(
-                    value: planned ? 0.0 : progress,
+                    value: progress,
                     minHeight: 8,
                     color: color,
                     backgroundColor: colors.surfaceContainerHighest,
@@ -619,7 +624,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                 Row(
                   children: [
                     Text(
-                      planned ? '0/12 lessons' : '$completed/12 lessons',
+                      '$completed/12 lessons',
                       style: TextStyle(
                         color: colors.onSurface,
                         fontSize: 12,
@@ -630,7 +635,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                     _smallBadge(
                       context: context,
                       label: reviewLabel,
-                      color: reviewNeeded > 0 ? AppTheme.warning : color,
+                      color: finalTestDone ? AppTheme.success : color,
                     ),
                   ],
                 ),
@@ -660,6 +665,15 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         ),
         _quickPracticeButton(
           context: context,
+          icon: Icons.mic_none_outlined,
+          title: 'Speaking path',
+          onTap: () => openScreen(
+            context,
+            const StudentLearningPathScreen(skillId: 'speaking'),
+          ),
+        ),
+        _quickPracticeButton(
+          context: context,
           icon: Icons.style_outlined,
           title: 'Vocabulary practice',
           onTap: () => openScreen(context, const VocabularyScreen()),
@@ -669,6 +683,12 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           icon: Icons.menu_book_outlined,
           title: 'Reading practice',
           onTap: () => openScreen(context, const ReadingScreen()),
+        ),
+        _quickPracticeButton(
+          context: context,
+          icon: Icons.edit_note_outlined,
+          title: 'Grammar practice',
+          onTap: () => openScreen(context, const HomeworkScreen()),
         ),
       ],
     );
@@ -828,14 +848,4 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     return colors.outlineVariant.withValues(alpha: isDark ? 0.35 : 0.8);
   }
 
-  void _showSpeakingComingSoon() {
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Speaking practice is planned for the next MVP slice.'),
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(milliseconds: 1400),
-      ),
-    );
-  }
 }
