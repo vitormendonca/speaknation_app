@@ -49,7 +49,29 @@ class _StudentPlacementTestScreenState
     return score >= 85;
   }
 
+  void _tryAgain() {
+    setState(() {
+      selectedAnswers.clear();
+      isSubmitted = false;
+      isSaving = false;
+      score = 0;
+    });
+  }
+
+  void _finishTest() {
+    Navigator.pop(context, true);
+  }
+
   Future<void> _submitTest() async {
+    if (isSubmitted) {
+      if (passed) {
+        _finishTest();
+      } else {
+        _tryAgain();
+      }
+      return;
+    }
+
     if (!isComplete || isSaving) {
       return;
     }
@@ -94,14 +116,22 @@ class _StudentPlacementTestScreenState
             height: 50,
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: isComplete && !isSaving ? _submitTest : null,
+              onPressed: (isComplete || isSubmitted) && !isSaving
+                  ? _submitTest
+                  : null,
               icon: Icon(
-                isSubmitted
-                    ? Icons.refresh_outlined
-                    : Icons.workspace_premium_outlined,
+                isSubmitted && passed
+                    ? Icons.check_circle_outline
+                    : isSubmitted
+                        ? Icons.refresh_outlined
+                        : Icons.workspace_premium_outlined,
               ),
               label: Text(
-                isSubmitted ? 'Recalculate Score' : 'Submit Placement Check',
+                isSubmitted && passed
+                    ? 'Done'
+                    : isSubmitted
+                        ? 'Try Again'
+                        : 'Submit Placement Check',
               ),
             ),
           ),
