@@ -8,10 +8,7 @@ import '../../theme/app_theme.dart';
 class StudentPlacementTestScreen extends StatefulWidget {
   final String level;
 
-  const StudentPlacementTestScreen({
-    super.key,
-    required this.level,
-  });
+  const StudentPlacementTestScreen({super.key, required this.level});
 
   @override
   State<StudentPlacementTestScreen> createState() =>
@@ -84,6 +81,13 @@ class _StudentPlacementTestScreenState
       isSaving = true;
     });
 
+    await LearningPathProgressService.recordLevelCheckAttempt(
+      level: widget.level,
+      score: calculatedScore,
+      passed: calculatedScore >= 85,
+      answers: selectedAnswers,
+    );
+
     if (calculatedScore >= 85) {
       await LearningPathProgressService.validateLevel(widget.level);
     }
@@ -100,9 +104,7 @@ class _StudentPlacementTestScreenState
     final colors = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('${widget.level} Placement Check'),
-      ),
+      appBar: AppBar(title: Text('${widget.level} Placement Check')),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -123,15 +125,15 @@ class _StudentPlacementTestScreenState
                 isSubmitted && passed
                     ? Icons.check_circle_outline
                     : isSubmitted
-                        ? Icons.refresh_outlined
-                        : Icons.workspace_premium_outlined,
+                    ? Icons.refresh_outlined
+                    : Icons.workspace_premium_outlined,
               ),
               label: Text(
                 isSubmitted && passed
                     ? 'Done'
                     : isSubmitted
-                        ? 'Try Again'
-                        : 'Submit Placement Check',
+                    ? 'Try Again'
+                    : 'Submit Placement Check',
               ),
             ),
           ),
@@ -140,10 +142,7 @@ class _StudentPlacementTestScreenState
             Text(
               'Answer all questions to submit.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: colors.onSurfaceVariant,
-                fontSize: 13,
-              ),
+              style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13),
             ),
           ],
         ],
@@ -160,9 +159,7 @@ class _StudentPlacementTestScreenState
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: colors.outlineVariant.withValues(alpha: 0.5),
-        ),
+        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -214,9 +211,7 @@ class _StudentPlacementTestScreenState
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: colors.outlineVariant.withValues(alpha: 0.5),
-        ),
+        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -258,15 +253,15 @@ class _StudentPlacementTestScreenState
     final borderColor = showCorrect
         ? AppTheme.success
         : showWrong
-            ? AppTheme.brandRed
-            : isSelected
-                ? AppTheme.info
-                : colors.outlineVariant.withValues(alpha: 0.5);
+        ? AppTheme.brandRed
+        : isSelected
+        ? AppTheme.info
+        : colors.outlineVariant.withValues(alpha: 0.5);
     final foregroundColor = showCorrect
         ? AppTheme.success
         : showWrong
-            ? AppTheme.brandRed
-            : colors.onSurface;
+        ? AppTheme.brandRed
+        : colors.onSurface;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -337,9 +332,7 @@ class _StudentPlacementTestScreenState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
-            passed
-                ? Icons.check_circle_outline
-                : Icons.rate_review_outlined,
+            passed ? Icons.check_circle_outline : Icons.rate_review_outlined,
             color: resultColor,
             size: 30,
           ),

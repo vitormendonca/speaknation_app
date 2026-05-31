@@ -1,9 +1,11 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/learning_path_data.dart';
 import '../models/learning_path_step.dart';
+import 'supabase_bootstrap.dart';
 
 class LearningPathSkillProgress {
   final String skillId;
@@ -44,6 +46,17 @@ class LearningPathProgressService {
   static const String _validatedLevelsPrefix = 'learning_path_validated_levels';
 
   static Future<Set<String>> getCompletedStepIds() async {
+    final remoteCompleted = await _getRemoteCompletedStepIds();
+
+    if (remoteCompleted != null) {
+      await _saveLocalCompletedStepIds(remoteCompleted);
+      return remoteCompleted;
+    }
+
+    return _getLocalCompletedStepIds();
+  }
+
+  static Future<Set<String>> _getLocalCompletedStepIds() async {
     final prefs = await SharedPreferences.getInstance();
     final key = await _completedStepsKey(prefs);
     final jsonString = prefs.getString(key);
@@ -62,13 +75,12 @@ class LearningPathProgressService {
   }
 
   static Future<void> markStepCompleted(String stepId) async {
-    final prefs = await SharedPreferences.getInstance();
-    final key = await _completedStepsKey(prefs);
-    final completed = await getCompletedStepIds();
+    await _markRemoteStepCompleted(stepId);
+    final completed = await _getLocalCompletedStepIds();
 
     completed.add(stepId);
 
-    await prefs.setString(key, jsonEncode(completed.toList()));
+    await _saveLocalCompletedStepIds(completed);
   }
 
   static Future<bool> isStepCompleted(String stepId) async {
@@ -77,6 +89,17 @@ class LearningPathProgressService {
   }
 
   static Future<Set<String>> getValidatedLevels() async {
+    final remoteValidatedLevels = await _getRemoteValidatedLevels();
+
+    if (remoteValidatedLevels != null) {
+      await _saveLocalValidatedLevels(remoteValidatedLevels);
+      return remoteValidatedLevels;
+    }
+
+    return _getLocalValidatedLevels();
+  }
+
+  static Future<Set<String>> _getLocalValidatedLevels() async {
     final prefs = await SharedPreferences.getInstance();
     final key = await _validatedLevelsKey(prefs);
     final jsonString = prefs.getString(key);
@@ -101,21 +124,41 @@ class LearningPathProgressService {
 
   static Future<void> validateLevel(String level) async {
     final normalizedLevel = level.toUpperCase();
-    final prefs = await SharedPreferences.getInstance();
-    final completedKey = await _completedStepsKey(prefs);
-    final validatedKey = await _validatedLevelsKey(prefs);
-    final completed = await getCompletedStepIds();
-    final validatedLevels = await getValidatedLevels();
+    final completed = await _getLocalCompletedStepIds();
+    final validatedLevels = await _getLocalValidatedLevels();
 
-    final levelStepIds = learningPathSteps
-        .where((step) => step.level.toUpperCase() == normalizedLevel)
-        .map((step) => step.id);
+    final levelStepIds = _stepIdsForLevel(normalizedLevel);
+
+    await _validateRemoteLevel(
+      level: normalizedLevel,
+      stepIds: levelStepIds.toList(),
+    );
 
     completed.addAll(levelStepIds);
     validatedLevels.add(normalizedLevel);
 
-    await prefs.setString(completedKey, jsonEncode(completed.toList()));
-    await prefs.setString(validatedKey, jsonEncode(validatedLevels.toList()));
+    await _saveLocalCompletedStepIds(completed);
+    await _saveLocalValidatedLevels(validatedLevels);
+  }
+
+  static Future<void> recordLevelCheckAttempt({
+    required String level,
+    required int score,
+    required bool passed,
+    required Map<String, String> answers,
+  }) async {
+    await _recordRemoteLevelCheckAttempt(
+      level: level.toUpperCase(),
+      score: score,
+      passed: passed,
+      answers: answers,
+    );
+  }
+
+  static Iterable<String> _stepIdsForLevel(String level) {
+    return learningPathSteps
+        .where((step) => step.level.toUpperCase() == level)
+        .map((step) => step.id);
   }
 
   static bool isStepUnlocked({
@@ -144,7 +187,7 @@ class LearningPathProgressService {
   }
 
   static Future<Map<String, LearningPathSkillProgress>>
-      getAllSkillProgress() async {
+  getAllSkillProgress() async {
     final completed = await getCompletedStepIds();
 
     return {
@@ -200,8 +243,8 @@ class LearningPathProgressService {
     final studentKey = (studentId?.isNotEmpty ?? false)
         ? studentId!
         : (studentName?.isNotEmpty ?? false)
-            ? studentName!
-            : 'guest';
+        ? studentName!
+        : 'guest';
 
     return '${_completedStepsPrefix}_${_normalizeKey(studentKey)}';
   }
@@ -212,16 +255,191 @@ class LearningPathProgressService {
     final studentKey = (studentId?.isNotEmpty ?? false)
         ? studentId!
         : (studentName?.isNotEmpty ?? false)
-            ? studentName!
-            : 'guest';
+        ? studentName!
+        : 'guest';
 
     return '${_validatedLevelsPrefix}_${_normalizeKey(studentKey)}';
   }
 
   static String _normalizeKey(String value) {
-    return value
-        .trim()
-        .toLowerCase()
-        .replaceAll(RegExp(r'[^a-z0-9_]+'), '_');
+    return value.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9_]+'), '_');
+  }
+
+  static Future<void> _saveLocalCompletedStepIds(Set<String> completed) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = await _completedStepsKey(prefs);
+
+    await prefs.setString(key, jsonEncode(completed.toList()));
+  }
+
+  static Future<void> _saveLocalValidatedLevels(Set<String> levels) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = await _validatedLevelsKey(prefs);
+
+    await prefs.setString(key, jsonEncode(levels.toList()));
+  }
+
+  static Future<String?> _remoteStudentId() async {
+    final client = SupabaseBootstrap.client;
+    final user = client?.auth.currentUser;
+
+    if (client == null || user == null) {
+      return null;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final role = prefs.getString('currentUserRole');
+
+    if (role == 'student') {
+      return user.id;
+    }
+
+    return null;
+  }
+
+  static Future<Set<String>?> _getRemoteCompletedStepIds() async {
+    final client = SupabaseBootstrap.client;
+    final studentId = await _remoteStudentId();
+
+    if (client == null || studentId == null) {
+      return null;
+    }
+
+    try {
+      final data = await client
+          .from('student_step_progress')
+          .select('learning_step_id')
+          .eq('student_id', studentId);
+
+      return _rowsFromResponse(data)
+          .map((row) => row['learning_step_id']?.toString() ?? '')
+          .where((id) => id.isNotEmpty)
+          .toSet();
+    } catch (error) {
+      debugPrint('Remote learning path progress unavailable: $error');
+      return null;
+    }
+  }
+
+  static Future<bool> _markRemoteStepCompleted(String stepId) async {
+    final client = SupabaseBootstrap.client;
+    final studentId = await _remoteStudentId();
+
+    if (client == null || studentId == null) {
+      return false;
+    }
+
+    try {
+      await client.from('student_step_progress').upsert({
+        'student_id': studentId,
+        'learning_step_id': stepId,
+        'status': 'completed',
+        'validated_by_level_check': false,
+        'completed_at': DateTime.now().toIso8601String(),
+      }, onConflict: 'student_id,learning_step_id');
+
+      return true;
+    } catch (error) {
+      debugPrint('Remote step completion failed: $error');
+      return false;
+    }
+  }
+
+  static Future<Set<String>?> _getRemoteValidatedLevels() async {
+    final client = SupabaseBootstrap.client;
+    final studentId = await _remoteStudentId();
+
+    if (client == null || studentId == null) {
+      return null;
+    }
+
+    try {
+      final data = await client
+          .from('student_step_progress')
+          .select('learning_step_id')
+          .eq('student_id', studentId)
+          .eq('validated_by_level_check', true);
+
+      final stepLevelsById = {
+        for (final step in learningPathSteps) step.id: step.level.toUpperCase(),
+      };
+
+      return _rowsFromResponse(data)
+          .map((row) => row['learning_step_id']?.toString() ?? '')
+          .where((id) => stepLevelsById.containsKey(id))
+          .map((id) => stepLevelsById[id]!)
+          .toSet();
+    } catch (error) {
+      debugPrint('Remote validated levels unavailable: $error');
+      return null;
+    }
+  }
+
+  static Future<void> _validateRemoteLevel({
+    required String level,
+    required List<String> stepIds,
+  }) async {
+    final client = SupabaseBootstrap.client;
+    final studentId = await _remoteStudentId();
+
+    if (client == null || studentId == null || stepIds.isEmpty) {
+      return;
+    }
+
+    try {
+      final completedAt = DateTime.now().toIso8601String();
+      final rows = stepIds.map((stepId) {
+        return {
+          'student_id': studentId,
+          'learning_step_id': stepId,
+          'status': 'validated',
+          'validated_by_level_check': true,
+          'completed_at': completedAt,
+        };
+      }).toList();
+
+      await client
+          .from('student_step_progress')
+          .upsert(rows, onConflict: 'student_id,learning_step_id');
+    } catch (error) {
+      debugPrint('Remote level validation failed for $level: $error');
+    }
+  }
+
+  static Future<void> _recordRemoteLevelCheckAttempt({
+    required String level,
+    required int score,
+    required bool passed,
+    required Map<String, String> answers,
+  }) async {
+    final client = SupabaseBootstrap.client;
+    final studentId = await _remoteStudentId();
+
+    if (client == null || studentId == null) {
+      return;
+    }
+
+    try {
+      await client.from('level_check_attempts').insert({
+        'student_id': studentId,
+        'level': level,
+        'score': score,
+        'passed': passed,
+        'answers': answers,
+      });
+    } catch (error) {
+      debugPrint('Remote level check attempt failed: $error');
+    }
+  }
+
+  static List<Map<String, dynamic>> _rowsFromResponse(Object? response) {
+    if (response is! List) {
+      return [];
+    }
+
+    return response
+        .whereType<Map>()
+        .map((row) => Map<String, dynamic>.from(row))
+        .toList();
   }
 }
