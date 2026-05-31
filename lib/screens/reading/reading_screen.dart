@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/reading_data.dart';
 import '../../models/activity_question.dart';
 import '../../models/reading_activity.dart';
+import '../../services/assignment_service.dart';
 import '../../services/student_progress_service.dart';
 
 class ReadingScreen extends StatefulWidget {
@@ -53,9 +55,7 @@ class _ReadingScreenState extends State<ReadingScreen> {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => ReadingActivityScreen(
-          activity: activity,
-        ),
+        builder: (_) => ReadingActivityScreen(activity: activity),
       ),
     );
 
@@ -85,11 +85,7 @@ class _ReadingScreenState extends State<ReadingScreen> {
           const SizedBox(height: 8),
           const Text(
             'Read short texts, answer questions, and check your comprehension.',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 16,
-              height: 1.4,
-            ),
+            style: TextStyle(color: Colors.white70, fontSize: 16, height: 1.4),
           ),
           const SizedBox(height: 24),
           for (final activity in readingActivities)
@@ -179,11 +175,7 @@ class _ReadingScreenState extends State<ReadingScreen> {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Icon(
-                          statusIcon,
-                          color: statusColor,
-                          size: 16,
-                        ),
+                        Icon(statusIcon, color: statusColor, size: 16),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
@@ -230,10 +222,7 @@ class _ReadingScreenState extends State<ReadingScreen> {
 class ReadingActivityScreen extends StatefulWidget {
   final ReadingActivity activity;
 
-  const ReadingActivityScreen({
-    super.key,
-    required this.activity,
-  });
+  const ReadingActivityScreen({super.key, required this.activity});
 
   @override
   State<ReadingActivityScreen> createState() => _ReadingActivityScreenState();
@@ -356,16 +345,35 @@ class _ReadingActivityScreenState extends State<ReadingActivityScreen> {
     final int percentageScore = _calculatePercentageScore();
 
     // If the activity is already completed, this is review/practice only.
-    // Do not overwrite saved progress or saved score.
+    // Do not overwrite saved progress, saved score, or assignment status.
     if (reviewMode) {
       return;
     }
+
+    final prefs = await SharedPreferences.getInstance();
+    final currentStudentName = prefs.getString('currentStudentName') ?? '';
 
     if (percentageScore >= 85) {
       await StudentProgressService.markActivityAsCompleted(
         activityId: widget.activity.id,
         category: 'reading',
       );
+
+      if (currentStudentName.isNotEmpty) {
+        await AssignmentService.markStudentAssignmentAsCompleted(
+          studentName: currentStudentName,
+          title: widget.activity.title,
+          category: 'Reading',
+        );
+      }
+    } else {
+      if (currentStudentName.isNotEmpty) {
+        await AssignmentService.markStudentAssignmentAsReviewNeeded(
+          studentName: currentStudentName,
+          title: widget.activity.title,
+          category: 'Reading',
+        );
+      }
     }
 
     await StudentProgressService.saveActivityScore(
@@ -437,10 +445,7 @@ class _ReadingActivityScreenState extends State<ReadingActivityScreen> {
               ),
               child: const Row(
                 children: [
-                  Icon(
-                    Icons.check_circle,
-                    color: Colors.greenAccent,
-                  ),
+                  Icon(Icons.check_circle, color: Colors.greenAccent),
                   SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -648,18 +653,11 @@ class _ReadingActivityScreenState extends State<ReadingActivityScreen> {
             Expanded(
               child: Text(
                 option,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                ),
+                style: const TextStyle(color: Colors.white, fontSize: 16),
               ),
             ),
             if (optionIcon != null)
-              Icon(
-                optionIcon,
-                color: borderColor,
-                size: 22,
-              ),
+              Icon(optionIcon, color: borderColor, size: 22),
           ],
         ),
       ),
@@ -800,8 +798,7 @@ class _ReadingActivityScreenState extends State<ReadingActivityScreen> {
         message =
             'Good review. Your saved score is still ${lastScore ?? percentageScore}%.';
       } else {
-        message =
-            'This was practice only. Your saved progress did not change.';
+        message = 'This was practice only. Your saved progress did not change.';
       }
     } else if (percentageScore >= 90) {
       message = 'Excellent reading comprehension! This activity is completed.';
@@ -844,13 +841,15 @@ class _ReadingActivityScreenState extends State<ReadingActivityScreen> {
                 Text(
                   reviewMode
                       ? isApproved
-                          ? 'Review Completed'
-                          : 'Review Practice'
+                            ? 'Review Completed'
+                            : 'Review Practice'
                       : isApproved
-                          ? 'Completed'
-                          : 'Review Needed',
+                      ? 'Completed'
+                      : 'Review Needed',
                   style: TextStyle(
-                    color: isApproved ? Colors.greenAccent : Colors.orangeAccent,
+                    color: isApproved
+                        ? Colors.greenAccent
+                        : Colors.orangeAccent,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
@@ -858,10 +857,7 @@ class _ReadingActivityScreenState extends State<ReadingActivityScreen> {
                 const SizedBox(height: 10),
                 Text(
                   reviewMode ? 'Your review score' : 'Your score',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 18,
-                  ),
+                  style: const TextStyle(color: Colors.white70, fontSize: 18),
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -898,10 +894,7 @@ class _ReadingActivityScreenState extends State<ReadingActivityScreen> {
                 Text(
                   message,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 16,
-                  ),
+                  style: const TextStyle(color: Colors.white70, fontSize: 16),
                 ),
               ],
             ),
@@ -917,10 +910,7 @@ class _ReadingActivityScreenState extends State<ReadingActivityScreen> {
           ),
           const SizedBox(height: 16),
           for (int i = 0; i < widget.activity.questions.length; i++)
-            _buildReviewCard(
-              index: i,
-              question: widget.activity.questions[i],
-            ),
+            _buildReviewCard(index: i, question: widget.activity.questions[i]),
           const SizedBox(height: 24),
           if (!isApproved) ...[
             SizedBox(
@@ -961,10 +951,7 @@ class _ReadingActivityScreenState extends State<ReadingActivityScreen> {
               ),
               child: const Text(
                 'Back to Reading',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                ),
+                style: TextStyle(color: Colors.white, fontSize: 16),
               ),
             ),
           ),
@@ -1008,10 +995,7 @@ class _ReadingActivityScreenState extends State<ReadingActivityScreen> {
             const SizedBox(height: 8),
             const Text(
               'This question type was not counted in this version.',
-              style: TextStyle(
-                color: Colors.white54,
-                fontSize: 14,
-              ),
+              style: TextStyle(color: Colors.white54, fontSize: 14),
             ),
           ],
         ),
@@ -1064,18 +1048,12 @@ class _ReadingActivityScreenState extends State<ReadingActivityScreen> {
           const SizedBox(height: 10),
           Text(
             'Your answer: ${userAnswer.isEmpty ? 'No answer' : userAnswer}',
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
-            ),
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
           ),
           const SizedBox(height: 6),
           Text(
             'Correct answer: ${question.correctAnswer}',
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
-            ),
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
           ),
         ],
       ),

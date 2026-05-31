@@ -45,8 +45,8 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
 
     final assignments =
         await AssignmentService.getAssignedActivitiesByStudentName(
-      savedStudentName,
-    );
+          savedStudentName,
+        );
 
     if (!mounted) return;
 
@@ -113,36 +113,6 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
     );
   }
 
-  Future<void> _markAssignmentAsCompleted(AssignedActivity assignment) async {
-    if (assignment.status == 'Completed') {
-      return;
-    }
-
-    final wasUpdated =
-        await AssignmentService.markStudentAssignmentAsCompleted(
-      studentName: currentStudentName,
-      title: assignment.title,
-      category: assignment.category,
-    );
-
-    if (!mounted) return;
-
-    if (wasUpdated) {
-      ScaffoldMessenger.of(context).clearSnackBars();
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Assignment marked as completed.'),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-          duration: Duration(milliseconds: 900),
-        ),
-      );
-    }
-
-    await _loadStudentAssignments();
-  }
-
   Future<void> _openAssignedActivity({
     required BuildContext context,
     required AssignedActivity assignment,
@@ -159,9 +129,7 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
         await Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => ListeningExerciseScreen(
-              exercise: exercise,
-            ),
+            builder: (_) => ListeningExerciseScreen(exercise: exercise),
           ),
         );
 
@@ -178,11 +146,7 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
 
         await Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (_) => VocabularyQuizScreen(
-              quiz: quiz,
-            ),
-          ),
+          MaterialPageRoute(builder: (_) => VocabularyQuizScreen(quiz: quiz)),
         );
 
         await _loadStudentAssignments();
@@ -199,9 +163,7 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
         await Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => ReadingActivityScreen(
-              activity: readingActivity,
-            ),
+            builder: (_) => ReadingActivityScreen(activity: readingActivity),
           ),
         );
 
@@ -216,21 +178,14 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
           return;
         }
 
-        final result = await Navigator.push(
+        await Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => HomeworkActivityScreen(
-              activity: homeworkActivity,
-            ),
+            builder: (_) => HomeworkActivityScreen(activity: homeworkActivity),
           ),
         );
 
-        if (result == true) {
-          await _markAssignmentAsCompleted(assignment);
-        } else {
-          await _loadStudentAssignments();
-        }
-
+        await _loadStudentAssignments();
         return;
 
       default:
@@ -248,7 +203,10 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
         .length;
 
     final int completedCount = studentAssignments
-        .where((activity) => activity.status == 'Completed')
+        .where(
+          (activity) =>
+              activity.status == 'Completed' || activity.status == 'Reviewed',
+        )
         .length;
 
     final int reviewNeededCount = studentAssignments
@@ -381,10 +339,7 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
               _emptyCard()
             else
               for (final activity in studentAssignments)
-                _assignmentCard(
-                  context: context,
-                  activity: activity,
-                ),
+                _assignmentCard(context: context, activity: activity),
 
             const SizedBox(height: 20),
 
@@ -409,11 +364,7 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
       ),
       child: Column(
         children: [
-          Icon(
-            icon,
-            color: const Color(0xFFE53935),
-            size: 30,
-          ),
+          Icon(icon, color: const Color(0xFFE53935), size: 30),
           const SizedBox(height: 10),
           Text(
             value,
@@ -427,10 +378,7 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white60,
-              fontSize: 13,
-            ),
+            style: const TextStyle(color: Colors.white60, fontSize: 13),
           ),
         ],
       ),
@@ -493,20 +441,13 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
                 ),
               ),
 
-              Icon(
-                statusIcon,
-                color: statusColor,
-              ),
+              Icon(statusIcon, color: statusColor),
             ],
           ),
 
           const SizedBox(height: 14),
 
-          _infoRow(
-            icon: Icons.event,
-            title: 'Due',
-            value: activity.dueDate,
-          ),
+          _infoRow(icon: Icons.event, title: 'Due', value: activity.dueDate),
 
           _infoRow(
             icon: Icons.flag,
@@ -533,18 +474,15 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
             width: double.infinity,
             child: OutlinedButton.icon(
               onPressed: () {
-                _openAssignedActivity(
-                  context: context,
-                  assignment: activity,
-                );
+                _openAssignedActivity(context: context, assignment: activity);
               },
               icon: Icon(
-                activity.status == 'Completed'
+                _isCompletedStatus(activity.status)
                     ? Icons.visibility
                     : Icons.play_arrow,
               ),
               label: Text(
-                activity.status == 'Completed'
+                _isCompletedStatus(activity.status)
                     ? 'Open Again'
                     : 'Open Activity',
               ),
@@ -577,11 +515,7 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
       padding: const EdgeInsets.only(bottom: 9),
       child: Row(
         children: [
-          Icon(
-            icon,
-            color: const Color(0xFFE53935),
-            size: 20,
-          ),
+          Icon(icon, color: const Color(0xFFE53935), size: 20),
           const SizedBox(width: 10),
           Text(
             '$title: ',
@@ -597,8 +531,9 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
               style: TextStyle(
                 color: valueColor ?? Colors.white,
                 fontSize: 14,
-                fontWeight:
-                    valueColor == null ? FontWeight.normal : FontWeight.bold,
+                fontWeight: valueColor == null
+                    ? FontWeight.normal
+                    : FontWeight.bold,
               ),
             ),
           ),
@@ -617,9 +552,7 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
         border: Border.all(color: Colors.white12),
       ),
       child: const Center(
-        child: CircularProgressIndicator(
-          color: Color(0xFFB00020),
-        ),
+        child: CircularProgressIndicator(color: Color(0xFFB00020)),
       ),
     );
   }
@@ -635,10 +568,7 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
       ),
       child: const Text(
         'No assignments yet.',
-        style: TextStyle(
-          color: Colors.white70,
-          fontSize: 15,
-        ),
+        style: TextStyle(color: Colors.white70, fontSize: 15),
       ),
     );
   }
@@ -666,11 +596,7 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
           SizedBox(height: 12),
           Text(
             'Opening an activity does not automatically complete it. The assignment is completed only after the activity returns a real completion confirmation.',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 15,
-              height: 1.5,
-            ),
+            style: TextStyle(color: Colors.white70, fontSize: 15, height: 1.5),
           ),
         ],
       ),
@@ -695,6 +621,7 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
   Color _statusColor(String status) {
     switch (status) {
       case 'Completed':
+      case 'Reviewed':
         return Colors.greenAccent;
       case 'Review Needed':
         return Colors.orangeAccent;
@@ -708,6 +635,7 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
   IconData _statusIcon(String status) {
     switch (status) {
       case 'Completed':
+      case 'Reviewed':
         return Icons.check_circle;
       case 'Review Needed':
         return Icons.info;
@@ -716,5 +644,9 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
       default:
         return Icons.assignment;
     }
+  }
+
+  bool _isCompletedStatus(String status) {
+    return status == 'Completed' || status == 'Reviewed';
   }
 }

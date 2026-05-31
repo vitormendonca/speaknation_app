@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/activity_question.dart';
 import '../../models/listening_exercise.dart';
+import '../../services/assignment_service.dart';
 import '../../services/student_progress_service.dart';
 
 class ListeningExerciseScreen extends StatefulWidget {
   final ListeningExercise exercise;
 
-  const ListeningExerciseScreen({
-    super.key,
-    required this.exercise,
-  });
+  const ListeningExerciseScreen({super.key, required this.exercise});
 
   @override
   State<ListeningExerciseScreen> createState() =>
@@ -149,16 +148,35 @@ class _ListeningExerciseScreenState extends State<ListeningExerciseScreen> {
     final int percentageScore = _calculatePercentageScore();
 
     // If the activity is already completed, this attempt is review/practice only.
-    // Do not overwrite saved progress or saved score.
+    // Do not overwrite saved progress, saved score, or assignment status.
     if (reviewMode) {
       return;
     }
+
+    final prefs = await SharedPreferences.getInstance();
+    final currentStudentName = prefs.getString('currentStudentName') ?? '';
 
     if (percentageScore >= 85) {
       await StudentProgressService.markActivityAsCompleted(
         activityId: widget.exercise.id,
         category: 'listening',
       );
+
+      if (currentStudentName.isNotEmpty) {
+        await AssignmentService.markStudentAssignmentAsCompleted(
+          studentName: currentStudentName,
+          title: widget.exercise.title,
+          category: 'Listening',
+        );
+      }
+    } else {
+      if (currentStudentName.isNotEmpty) {
+        await AssignmentService.markStudentAssignmentAsReviewNeeded(
+          studentName: currentStudentName,
+          title: widget.exercise.title,
+          category: 'Listening',
+        );
+      }
     }
 
     await StudentProgressService.saveActivityScore(
@@ -210,9 +228,7 @@ class _ListeningExerciseScreenState extends State<ListeningExerciseScreen> {
 
   Future<void> playAudio() async {
     try {
-      await audioPlayer.play(
-        AssetSource(widget.exercise.audioPath),
-      );
+      await audioPlayer.play(AssetSource(widget.exercise.audioPath));
 
       setState(() {
         isPlaying = true;
@@ -238,9 +254,7 @@ class _ListeningExerciseScreenState extends State<ListeningExerciseScreen> {
     try {
       await audioPlayer.stop();
 
-      await audioPlayer.play(
-        AssetSource(widget.exercise.audioPath),
-      );
+      await audioPlayer.play(AssetSource(widget.exercise.audioPath));
 
       setState(() {
         isPlaying = true;
@@ -251,11 +265,9 @@ class _ListeningExerciseScreenState extends State<ListeningExerciseScreen> {
   }
 
   void showAudioError(Object error) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Erro ao tocar áudio: $error'),
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Erro ao tocar áudio: $error')));
   }
 
   @override
@@ -284,10 +296,7 @@ class _ListeningExerciseScreenState extends State<ListeningExerciseScreen> {
               ),
               child: const Row(
                 children: [
-                  Icon(
-                    Icons.check_circle,
-                    color: Colors.greenAccent,
-                  ),
+                  Icon(Icons.check_circle, color: Colors.greenAccent),
                   SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -325,10 +334,7 @@ class _ListeningExerciseScreenState extends State<ListeningExerciseScreen> {
 
           Text(
             widget.exercise.description,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 16,
-            ),
+            style: const TextStyle(color: Colors.white70, fontSize: 16),
           ),
 
           const SizedBox(height: 8),
@@ -423,10 +429,7 @@ class _ListeningExerciseScreenState extends State<ListeningExerciseScreen> {
           const SizedBox(height: 8),
           Text(
             isPlaying ? 'Audio playing...' : 'Ready to listen',
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 16,
-            ),
+            style: const TextStyle(color: Colors.white70, fontSize: 16),
           ),
           const SizedBox(height: 18),
           Row(
@@ -455,10 +458,7 @@ class _ListeningExerciseScreenState extends State<ListeningExerciseScreen> {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: restartAudio,
-                  icon: const Icon(
-                    Icons.replay,
-                    color: Colors.white,
-                  ),
+                  icon: const Icon(Icons.replay, color: Colors.white),
                   label: const Text(
                     'Restart',
                     style: TextStyle(color: Colors.white),
@@ -610,18 +610,11 @@ class _ListeningExerciseScreenState extends State<ListeningExerciseScreen> {
             Expanded(
               child: Text(
                 option,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                ),
+                style: const TextStyle(color: Colors.white, fontSize: 16),
               ),
             ),
             if (optionIcon != null)
-              Icon(
-                optionIcon,
-                color: borderColor,
-                size: 22,
-              ),
+              Icon(optionIcon, color: borderColor, size: 22),
           ],
         ),
       ),
@@ -744,9 +737,7 @@ class _ListeningExerciseScreenState extends State<ListeningExerciseScreen> {
           const SizedBox(height: 8),
           const Text(
             'This question type will be available soon.',
-            style: TextStyle(
-              color: Colors.white54,
-            ),
+            style: TextStyle(color: Colors.white54),
           ),
         ],
       ),
@@ -766,11 +757,11 @@ class _ListeningExerciseScreenState extends State<ListeningExerciseScreen> {
         message =
             'Good review. Your saved score is still ${lastScore ?? percentageScore}%.';
       } else {
-        message =
-            'This was practice only. Your saved progress did not change.';
+        message = 'This was practice only. Your saved progress did not change.';
       }
     } else if (percentageScore >= 90) {
-      message = 'Excellent listening comprehension! This activity is completed.';
+      message =
+          'Excellent listening comprehension! This activity is completed.';
     } else if (percentageScore >= 85) {
       message = 'Great listening comprehension! This activity is completed.';
     } else if (percentageScore >= 70) {
@@ -810,13 +801,15 @@ class _ListeningExerciseScreenState extends State<ListeningExerciseScreen> {
                 Text(
                   reviewMode
                       ? isApproved
-                          ? 'Review Completed'
-                          : 'Review Practice'
+                            ? 'Review Completed'
+                            : 'Review Practice'
                       : isApproved
-                          ? 'Completed'
-                          : 'Review Needed',
+                      ? 'Completed'
+                      : 'Review Needed',
                   style: TextStyle(
-                    color: isApproved ? Colors.greenAccent : Colors.orangeAccent,
+                    color: isApproved
+                        ? Colors.greenAccent
+                        : Colors.orangeAccent,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
@@ -824,10 +817,7 @@ class _ListeningExerciseScreenState extends State<ListeningExerciseScreen> {
                 const SizedBox(height: 10),
                 Text(
                   reviewMode ? 'Your review score' : 'Your score',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 18,
-                  ),
+                  style: const TextStyle(color: Colors.white70, fontSize: 18),
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -864,10 +854,7 @@ class _ListeningExerciseScreenState extends State<ListeningExerciseScreen> {
                 Text(
                   message,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 16,
-                  ),
+                  style: const TextStyle(color: Colors.white70, fontSize: 16),
                 ),
               ],
             ),
@@ -883,10 +870,7 @@ class _ListeningExerciseScreenState extends State<ListeningExerciseScreen> {
           ),
           const SizedBox(height: 16),
           for (int i = 0; i < widget.exercise.questions.length; i++)
-            _buildReviewCard(
-              index: i,
-              question: widget.exercise.questions[i],
-            ),
+            _buildReviewCard(index: i, question: widget.exercise.questions[i]),
           const SizedBox(height: 24),
           if (!isApproved) ...[
             SizedBox(
@@ -927,10 +911,7 @@ class _ListeningExerciseScreenState extends State<ListeningExerciseScreen> {
               ),
               child: Text(
                 reviewMode ? 'Back to Listening' : 'Back to Listening',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                ),
+                style: const TextStyle(color: Colors.white, fontSize: 16),
               ),
             ),
           ),
@@ -974,10 +955,7 @@ class _ListeningExerciseScreenState extends State<ListeningExerciseScreen> {
             const SizedBox(height: 8),
             const Text(
               'This question type was not counted in this version.',
-              style: TextStyle(
-                color: Colors.white54,
-                fontSize: 14,
-              ),
+              style: TextStyle(color: Colors.white54, fontSize: 14),
             ),
           ],
         ),
@@ -1030,18 +1008,12 @@ class _ListeningExerciseScreenState extends State<ListeningExerciseScreen> {
           const SizedBox(height: 10),
           Text(
             'Your answer: ${userAnswer.isEmpty ? 'No answer' : userAnswer}',
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
-            ),
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
           ),
           const SizedBox(height: 6),
           Text(
             'Correct answer: ${question.correctAnswer}',
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
-            ),
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
           ),
         ],
       ),

@@ -38,8 +38,8 @@ class _TeacherStudentDetailScreenState
   Future<void> _loadAssignedActivities() async {
     final activities =
         await AssignmentService.getAssignedActivitiesByStudentName(
-      widget.studentName,
-    );
+          widget.studentName,
+        );
 
     if (!mounted) return;
 
@@ -56,7 +56,10 @@ class _TeacherStudentDetailScreenState
       .length;
 
   int get completedCount => assignedActivities
-      .where((activity) => activity.status == 'Completed')
+      .where(
+        (activity) =>
+            activity.status == 'Completed' || activity.status == 'Reviewed',
+      )
       .length;
 
   int get reviewNeededCount => assignedActivities
@@ -82,9 +85,7 @@ class _TeacherStudentDetailScreenState
   }) {
     return Card(
       color: const Color(0xFF1E1E1E),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
         onTap: onTap,
@@ -99,11 +100,7 @@ class _TeacherStudentDetailScreenState
                   color: const Color(0xFF6E59A5).withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(
-                  icon,
-                  color: const Color(0xFFD3E4FD),
-                  size: 28,
-                ),
+                child: Icon(icon, color: const Color(0xFFD3E4FD), size: 28),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -130,10 +127,7 @@ class _TeacherStudentDetailScreenState
                   ],
                 ),
               ),
-              const Icon(
-                Icons.chevron_right,
-                color: Colors.white54,
-              ),
+              const Icon(Icons.chevron_right, color: Colors.white54),
             ],
           ),
         ),
@@ -156,11 +150,7 @@ class _TeacherStudentDetailScreenState
       ),
       child: Column(
         children: [
-          Icon(
-            icon,
-            color: color,
-            size: 24,
-          ),
+          Icon(icon, color: color, size: 24),
           const SizedBox(height: 8),
           Text(
             value,
@@ -174,10 +164,7 @@ class _TeacherStudentDetailScreenState
           Text(
             title,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white60,
-              fontSize: 11,
-            ),
+            style: const TextStyle(color: Colors.white60, fontSize: 11),
           ),
         ],
       ),
@@ -185,26 +172,28 @@ class _TeacherStudentDetailScreenState
   }
 
   Widget _buildInfoBox() {
-    final String totalText =
-        isLoadingAssignments ? '...' : totalAssigned.toString();
+    final String totalText = isLoadingAssignments
+        ? '...'
+        : totalAssigned.toString();
 
-    final String pendingText =
-        isLoadingAssignments ? '...' : pendingCount.toString();
+    final String pendingText = isLoadingAssignments
+        ? '...'
+        : pendingCount.toString();
 
-    final String completedText =
-        isLoadingAssignments ? '...' : completedCount.toString();
+    final String completedText = isLoadingAssignments
+        ? '...'
+        : completedCount.toString();
 
-    final String reviewText =
-        isLoadingAssignments ? '...' : reviewNeededCount.toString();
+    final String reviewText = isLoadingAssignments
+        ? '...'
+        : reviewNeededCount.toString();
 
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E1E),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: Colors.white10,
-        ),
+        border: Border.all(color: Colors.white10),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -220,26 +209,17 @@ class _TeacherStudentDetailScreenState
           const SizedBox(height: 14),
           Text(
             'ID: ${widget.studentId}',
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
-            ),
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
           ),
           const SizedBox(height: 8),
           Text(
             'Level: ${widget.studentLevel}',
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
-            ),
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
           ),
           const SizedBox(height: 8),
           Text(
             'Access code: ${widget.accessCode}',
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
-            ),
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
           ),
 
           const SizedBox(height: 18),
@@ -306,7 +286,7 @@ class _TeacherStudentDetailScreenState
   }
 
   Future<void> _openAssignActivityScreen(BuildContext context) async {
-    final result = await Navigator.push(
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => TeacherAssignActivityScreen(
@@ -319,20 +299,12 @@ class _TeacherStudentDetailScreenState
 
     if (!context.mounted) return;
 
-    if (result == true) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Activity assigned successfully!'),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-
-      await _loadAssignedActivities();
-    }
+    await _loadAssignedActivities();
   }
 
-  Future<void> _openStudentAssignedActivitiesScreen(BuildContext context) async {
+  Future<void> _openStudentAssignedActivitiesScreen(
+    BuildContext context,
+  ) async {
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -391,10 +363,7 @@ class _TeacherStudentDetailScreenState
           Text(
             'Level ${widget.studentLevel}',
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 15,
-            ),
+            style: const TextStyle(color: Colors.white70, fontSize: 15),
           ),
           const SizedBox(height: 24),
 

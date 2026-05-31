@@ -35,8 +35,8 @@ class _TeacherStudentAssignedActivitiesScreenState
   Future<void> _loadAssignedActivities() async {
     final activities =
         await AssignmentService.getAssignedActivitiesByStudentName(
-      widget.studentName,
-    );
+          widget.studentName,
+        );
 
     if (!mounted) return;
 
@@ -47,7 +47,7 @@ class _TeacherStudentAssignedActivitiesScreenState
   }
 
   Future<void> _openAssignActivityScreen() async {
-    final result = await Navigator.push(
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => TeacherAssignActivityScreen(
@@ -60,20 +60,11 @@ class _TeacherStudentAssignedActivitiesScreenState
 
     if (!mounted) return;
 
-    if (result == true) {
-      ScaffoldMessenger.of(context).clearSnackBars();
+    setState(() {
+      isLoading = true;
+    });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Activity assigned successfully!'),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-          duration: Duration(milliseconds: 1200),
-        ),
-      );
-
-      await _loadAssignedActivities();
-    }
+    await _loadAssignedActivities();
   }
 
   Future<void> _confirmDeleteAssignment(AssignedActivity activity) async {
@@ -88,10 +79,7 @@ class _TeacherStudentAssignedActivitiesScreenState
           ),
           content: Text(
             'Are you sure you want to remove "${activity.title}" from ${widget.studentName}?',
-            style: const TextStyle(
-              color: Colors.white70,
-              height: 1.4,
-            ),
+            style: const TextStyle(color: Colors.white70, height: 1.4),
           ),
           actions: [
             TextButton(
@@ -148,10 +136,7 @@ class _TeacherStudentAssignedActivitiesScreenState
           ),
           content: Text(
             'Do you want to mark "${activity.title}" as reviewed for ${widget.studentName}?',
-            style: const TextStyle(
-              color: Colors.white70,
-              height: 1.4,
-            ),
+            style: const TextStyle(color: Colors.white70, height: 1.4),
           ),
           actions: [
             TextButton(
@@ -244,10 +229,7 @@ class _TeacherStudentAssignedActivitiesScreenState
       return IconButton(
         tooltip: 'Remove assignment',
         onPressed: () => _confirmDeleteAssignment(activity),
-        icon: const Icon(
-          Icons.delete_outline,
-          color: Colors.white38,
-        ),
+        icon: const Icon(Icons.delete_outline, color: Colors.white38),
       );
     }
 
@@ -255,20 +237,14 @@ class _TeacherStudentAssignedActivitiesScreenState
       return IconButton(
         tooltip: 'Mark as reviewed',
         onPressed: () => _confirmMarkAsReviewed(activity),
-        icon: const Icon(
-          Icons.check_circle_outline,
-          color: Colors.greenAccent,
-        ),
+        icon: const Icon(Icons.check_circle_outline, color: Colors.greenAccent),
       );
     }
 
     if (activity.status == 'Reviewed') {
       return const Padding(
         padding: EdgeInsets.only(top: 8),
-        child: Icon(
-          Icons.verified,
-          color: Colors.blueAccent,
-        ),
+        child: Icon(Icons.verified, color: Colors.blueAccent),
       );
     }
 
@@ -281,9 +257,7 @@ class _TeacherStudentAssignedActivitiesScreenState
 
     return Card(
       color: const Color(0xFF1E1E1E),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Row(
@@ -301,9 +275,7 @@ class _TeacherStudentAssignedActivitiesScreenState
                 size: 28,
               ),
             ),
-
             const SizedBox(width: 16),
-
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -316,27 +288,16 @@ class _TeacherStudentAssignedActivitiesScreenState
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-
                   const SizedBox(height: 6),
-
                   Text(
                     '${activity.category} • Level ${activity.level}',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
-                    ),
+                    style: const TextStyle(color: Colors.white70, fontSize: 14),
                   ),
-
                   const SizedBox(height: 4),
-
                   Text(
                     'Due date: ${activity.dueDate}',
-                    style: const TextStyle(
-                      color: Colors.white38,
-                      fontSize: 12,
-                    ),
+                    style: const TextStyle(color: Colors.white38, fontSize: 12),
                   ),
-
                   if (activity.status == 'Completed') ...[
                     const SizedBox(height: 6),
                     const Text(
@@ -348,7 +309,6 @@ class _TeacherStudentAssignedActivitiesScreenState
                       ),
                     ),
                   ],
-
                   if (activity.status == 'Reviewed') ...[
                     const SizedBox(height: 6),
                     const Text(
@@ -360,7 +320,6 @@ class _TeacherStudentAssignedActivitiesScreenState
                       ),
                     ),
                   ],
-
                   if (activity.note.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Text(
@@ -374,9 +333,7 @@ class _TeacherStudentAssignedActivitiesScreenState
                 ],
               ),
             ),
-
             const SizedBox(width: 8),
-
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -392,11 +349,7 @@ class _TeacherStudentAssignedActivitiesScreenState
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        statusIcon,
-                        color: statusColor,
-                        size: 14,
-                      ),
+                      Icon(statusIcon, color: statusColor, size: 14),
                       const SizedBox(width: 5),
                       Text(
                         activity.status,
@@ -409,9 +362,7 @@ class _TeacherStudentAssignedActivitiesScreenState
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 8),
-
                 _buildActionIcon(activity),
               ],
             ),
@@ -427,9 +378,7 @@ class _TeacherStudentAssignedActivitiesScreenState
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E1E),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: Colors.white10,
-        ),
+        border: Border.all(color: Colors.white10),
       ),
       child: Column(
         children: [
@@ -438,9 +387,7 @@ class _TeacherStudentAssignedActivitiesScreenState
             color: Colors.white38,
             size: 54,
           ),
-
           const SizedBox(height: 16),
-
           Text(
             'No activities assigned to ${widget.studentName} yet',
             textAlign: TextAlign.center,
@@ -450,21 +397,13 @@ class _TeacherStudentAssignedActivitiesScreenState
               fontWeight: FontWeight.bold,
             ),
           ),
-
           const SizedBox(height: 8),
-
           const Text(
             'Assign an activity now without going back to the student profile.',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
-              height: 1.4,
-            ),
+            style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.4),
           ),
-
           const SizedBox(height: 20),
-
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
@@ -474,9 +413,7 @@ class _TeacherStudentAssignedActivitiesScreenState
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF6E59A5),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  vertical: 14,
-                ),
+                padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
@@ -492,9 +429,7 @@ class _TeacherStudentAssignedActivitiesScreenState
     return const Center(
       child: Padding(
         padding: EdgeInsets.only(top: 80),
-        child: CircularProgressIndicator(
-          color: Color(0xFF6E59A5),
-        ),
+        child: CircularProgressIndicator(color: Color(0xFF6E59A5)),
       ),
     );
   }
@@ -539,9 +474,7 @@ class _TeacherStudentAssignedActivitiesScreenState
                 fontWeight: FontWeight.bold,
               ),
             ),
-
             const SizedBox(height: 8),
-
             const Text(
               'Activities assigned to this student.',
               style: TextStyle(
@@ -550,9 +483,7 @@ class _TeacherStudentAssignedActivitiesScreenState
                 height: 1.4,
               ),
             ),
-
             const SizedBox(height: 24),
-
             if (isLoading)
               _buildLoadingState()
             else if (!hasAssignedActivities)

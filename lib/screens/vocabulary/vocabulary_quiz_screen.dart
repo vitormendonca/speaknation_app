@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/activity_question.dart';
 import '../../models/vocabulary_quiz.dart';
+import '../../services/assignment_service.dart';
 import '../../services/student_progress_service.dart';
 
 class VocabularyQuizScreen extends StatefulWidget {
   final VocabularyQuiz quiz;
 
-  const VocabularyQuizScreen({
-    super.key,
-    required this.quiz,
-  });
+  const VocabularyQuizScreen({super.key, required this.quiz});
 
   @override
   State<VocabularyQuizScreen> createState() => _VocabularyQuizScreenState();
@@ -112,16 +111,35 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
     final percentageScore = _calculatePercentageScore();
 
     // If the quiz is already completed, this is review/practice only.
-    // Do not overwrite saved progress or saved score.
+    // Do not overwrite saved progress, saved score, or assignment status.
     if (reviewMode) {
       return;
     }
+
+    final prefs = await SharedPreferences.getInstance();
+    final currentStudentName = prefs.getString('currentStudentName') ?? '';
 
     if (percentageScore >= 85) {
       await StudentProgressService.markActivityAsCompleted(
         activityId: widget.quiz.id,
         category: 'vocabulary',
       );
+
+      if (currentStudentName.isNotEmpty) {
+        await AssignmentService.markStudentAssignmentAsCompleted(
+          studentName: currentStudentName,
+          title: widget.quiz.title,
+          category: 'Vocabulary',
+        );
+      }
+    } else {
+      if (currentStudentName.isNotEmpty) {
+        await AssignmentService.markStudentAssignmentAsReviewNeeded(
+          studentName: currentStudentName,
+          title: widget.quiz.title,
+          category: 'Vocabulary',
+        );
+      }
     }
 
     await StudentProgressService.saveActivityScore(
@@ -201,10 +219,7 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
               ),
               child: const Row(
                 children: [
-                  Icon(
-                    Icons.check_circle,
-                    color: Colors.greenAccent,
-                  ),
+                  Icon(Icons.check_circle, color: Colors.greenAccent),
                   SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -253,10 +268,7 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
 
           Text(
             widget.quiz.description,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 16,
-            ),
+            style: const TextStyle(color: Colors.white70, fontSize: 16),
           ),
 
           const SizedBox(height: 8),
@@ -281,10 +293,7 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
 
           Text(
             'Question ${currentQuestionIndex + 1} of ${widget.quiz.questions.length}',
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 15,
-            ),
+            style: const TextStyle(color: Colors.white70, fontSize: 15),
           ),
 
           const SizedBox(height: 24),
@@ -307,8 +316,8 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
               child: Text(
                 currentQuestionIndex == widget.quiz.questions.length - 1
                     ? reviewMode
-                        ? 'Finish Review'
-                        : 'Finish Quiz'
+                          ? 'Finish Review'
+                          : 'Finish Quiz'
                     : 'Next',
                 style: const TextStyle(
                   color: Colors.white,
@@ -399,26 +408,17 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
                   Expanded(
                     child: Text(
                       option,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                      ),
+                      style: const TextStyle(color: Colors.white, fontSize: 16),
                     ),
                   ),
 
                   if (hasAnswered && option == question.correctAnswer)
-                    const Icon(
-                      Icons.check_circle,
-                      color: Colors.greenAccent,
-                    ),
+                    const Icon(Icons.check_circle, color: Colors.greenAccent),
 
                   if (hasAnswered &&
                       option == selectedAnswer &&
                       option != question.correctAnswer)
-                    const Icon(
-                      Icons.cancel,
-                      color: Colors.redAccent,
-                    ),
+                    const Icon(Icons.cancel, color: Colors.redAccent),
                 ],
               ),
             ),
@@ -478,9 +478,7 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
         hintStyle: const TextStyle(color: Colors.white38),
         filled: true,
         fillColor: const Color(0xFF121212),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: Colors.white24),
@@ -542,8 +540,7 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
         message =
             'Good review. Your saved score is still ${lastScore ?? percentageScore}%.';
       } else {
-        message =
-            'This was practice only. Your saved progress did not change.';
+        message = 'This was practice only. Your saved progress did not change.';
       }
     } else if (percentageScore >= 90) {
       message = 'Excellent! This quiz is completed.';
@@ -588,13 +585,15 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
                 Text(
                   reviewMode
                       ? isApproved
-                          ? 'Review Completed'
-                          : 'Review Practice'
+                            ? 'Review Completed'
+                            : 'Review Practice'
                       : isApproved
-                          ? 'Completed'
-                          : 'Review Needed',
+                      ? 'Completed'
+                      : 'Review Needed',
                   style: TextStyle(
-                    color: isApproved ? Colors.greenAccent : Colors.orangeAccent,
+                    color: isApproved
+                        ? Colors.greenAccent
+                        : Colors.orangeAccent,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
@@ -604,10 +603,7 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
 
                 Text(
                   reviewMode ? 'Your review score' : 'Your score',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 18,
-                  ),
+                  style: const TextStyle(color: Colors.white70, fontSize: 18),
                 ),
 
                 const SizedBox(height: 8),
@@ -651,10 +647,7 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
                 Text(
                   message,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 16,
-                  ),
+                  style: const TextStyle(color: Colors.white70, fontSize: 16),
                 ),
               ],
             ),
@@ -674,10 +667,7 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
           const SizedBox(height: 16),
 
           for (int i = 0; i < widget.quiz.questions.length; i++)
-            _buildReviewCard(
-              index: i,
-              question: widget.quiz.questions[i],
-            ),
+            _buildReviewCard(index: i, question: widget.quiz.questions[i]),
 
           const SizedBox(height: 24),
 
@@ -722,10 +712,7 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
               ),
               child: const Text(
                 'Back to Vocabulary',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                ),
+                style: TextStyle(color: Colors.white, fontSize: 16),
               ),
             ),
           ),
@@ -790,20 +777,14 @@ class _VocabularyQuizScreenState extends State<VocabularyQuizScreen> {
 
           Text(
             'Your answer: ${userAnswer.isEmpty ? 'No answer' : userAnswer}',
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
-            ),
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
           ),
 
           const SizedBox(height: 6),
 
           Text(
             'Correct answer: ${question.correctAnswer}',
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
-            ),
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
           ),
         ],
       ),

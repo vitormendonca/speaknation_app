@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/homework_activity.dart';
+import '../../services/assignment_service.dart';
 import '../../services/student_progress_service.dart';
 
 class HomeworkActivityScreen extends StatefulWidget {
   final HomeworkActivity activity;
 
-  const HomeworkActivityScreen({
-    super.key,
-    required this.activity,
-  });
+  const HomeworkActivityScreen({super.key, required this.activity});
 
   @override
   State<HomeworkActivityScreen> createState() => _HomeworkActivityScreenState();
@@ -56,13 +55,32 @@ class _HomeworkActivityScreenState extends State<HomeworkActivityScreen> {
     final int score = isCorrect ? 100 : 0;
 
     // If the activity is already completed, this is only review/practice.
-    // Do not overwrite the saved progress or saved score.
+    // Do not overwrite the saved progress, saved score, or assignment status.
     if (!reviewMode) {
+      final prefs = await SharedPreferences.getInstance();
+      final currentStudentName = prefs.getString('currentStudentName') ?? '';
+
       if (isCorrect) {
         await StudentProgressService.markActivityAsCompleted(
           activityId: widget.activity.id,
           category: 'homework',
         );
+
+        if (currentStudentName.isNotEmpty) {
+          await AssignmentService.markStudentAssignmentAsCompleted(
+            studentName: currentStudentName,
+            title: widget.activity.title,
+            category: 'Homework',
+          );
+        }
+      } else {
+        if (currentStudentName.isNotEmpty) {
+          await AssignmentService.markStudentAssignmentAsReviewNeeded(
+            studentName: currentStudentName,
+            title: widget.activity.title,
+            category: 'Homework',
+          );
+        }
       }
 
       await StudentProgressService.saveActivityScore(
@@ -122,10 +140,7 @@ class _HomeworkActivityScreenState extends State<HomeworkActivityScreen> {
               ),
               child: const Row(
                 children: [
-                  Icon(
-                    Icons.check_circle,
-                    color: Colors.greenAccent,
-                  ),
+                  Icon(Icons.check_circle, color: Colors.greenAccent),
                   SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -175,8 +190,9 @@ class _HomeworkActivityScreenState extends State<HomeworkActivityScreen> {
                 children: [
                   Icon(
                     lastCorrect ? Icons.check_circle : Icons.info,
-                    color:
-                        lastCorrect ? Colors.greenAccent : Colors.orangeAccent,
+                    color: lastCorrect
+                        ? Colors.greenAccent
+                        : Colors.orangeAccent,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -201,10 +217,7 @@ class _HomeworkActivityScreenState extends State<HomeworkActivityScreen> {
 
           Text(
             widget.activity.description,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 16,
-            ),
+            style: const TextStyle(color: Colors.white70, fontSize: 16),
           ),
 
           const SizedBox(height: 16),
@@ -246,7 +259,9 @@ class _HomeworkActivityScreenState extends State<HomeworkActivityScreen> {
           SizedBox(
             height: 54,
             child: ElevatedButton(
-              onPressed: selectedAnswer == null || answered ? null : checkAnswer,
+              onPressed: selectedAnswer == null || answered
+                  ? null
+                  : checkAnswer,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFB00020),
                 disabledBackgroundColor: Colors.grey,
@@ -284,19 +299,20 @@ class _HomeworkActivityScreenState extends State<HomeworkActivityScreen> {
                     children: [
                       Icon(
                         isCorrect ? Icons.check_circle : Icons.info,
-                        color:
-                            isCorrect ? Colors.greenAccent : Colors.orangeAccent,
+                        color: isCorrect
+                            ? Colors.greenAccent
+                            : Colors.orangeAccent,
                       ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           reviewMode
                               ? isCorrect
-                                  ? 'Review: Correct'
-                                  : 'Review: Try Again'
+                                    ? 'Review: Correct'
+                                    : 'Review: Try Again'
                               : isCorrect
-                                  ? 'Completed: Correct'
-                                  : 'Review Needed',
+                              ? 'Completed: Correct'
+                              : 'Review Needed',
                           style: TextStyle(
                             color: isCorrect
                                 ? Colors.greenAccent
@@ -314,15 +330,12 @@ class _HomeworkActivityScreenState extends State<HomeworkActivityScreen> {
                   Text(
                     reviewMode
                         ? isCorrect
-                            ? 'Good review. Your saved score is still ${lastScore ?? 100}%.'
-                            : 'Correct answer: ${widget.activity.correctAnswer}'
+                              ? 'Good review. Your saved score is still ${lastScore ?? 100}%.'
+                              : 'Correct answer: ${widget.activity.correctAnswer}'
                         : isCorrect
-                            ? 'Great job. This activity is completed. Score: 100%'
-                            : 'Correct answer: ${widget.activity.correctAnswer}',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 16,
-                    ),
+                        ? 'Great job. This activity is completed. Score: 100%'
+                        : 'Correct answer: ${widget.activity.correctAnswer}',
+                    style: const TextStyle(color: Colors.white70, fontSize: 16),
                   ),
 
                   if (reviewMode) ...[
@@ -338,10 +351,7 @@ class _HomeworkActivityScreenState extends State<HomeworkActivityScreen> {
                     const SizedBox(height: 6),
                     const Text(
                       'Review the example and try again. Score: 0%',
-                      style: TextStyle(
-                        color: Colors.white54,
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(color: Colors.white54, fontSize: 14),
                     ),
                   ],
                 ],
@@ -356,10 +366,7 @@ class _HomeworkActivityScreenState extends State<HomeworkActivityScreen> {
                 height: 52,
                 child: ElevatedButton.icon(
                   onPressed: tryAgain,
-                  icon: const Icon(
-                    Icons.refresh,
-                    color: Colors.white,
-                  ),
+                  icon: const Icon(Icons.refresh, color: Colors.white),
                   label: const Text(
                     'Try Again',
                     style: TextStyle(
@@ -387,10 +394,7 @@ class _HomeworkActivityScreenState extends State<HomeworkActivityScreen> {
                 onPressed: () {
                   Navigator.pop(context, true);
                 },
-                icon: const Icon(
-                  Icons.arrow_back,
-                  color: Colors.white,
-                ),
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
                 label: const Text(
                   'Back to Homework',
                   style: TextStyle(
@@ -460,18 +464,11 @@ class _HomeworkActivityScreenState extends State<HomeworkActivityScreen> {
             Expanded(
               child: Text(
                 answer,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                ),
+                style: const TextStyle(color: Colors.white, fontSize: 16),
               ),
             ),
             if (optionIcon != null)
-              Icon(
-                optionIcon,
-                color: borderColor,
-                size: 22,
-              ),
+              Icon(optionIcon, color: borderColor, size: 22),
           ],
         ),
       ),
