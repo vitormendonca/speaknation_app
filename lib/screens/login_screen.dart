@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-import '../data/students_data.dart';
+import '../models/app_session.dart';
+import '../services/app_auth_service.dart';
+import '../services/supabase_bootstrap.dart';
 import 'student/student_home_screen.dart';
 import 'teacher/teacher_home_screen.dart';
 
@@ -14,83 +15,90 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController accessCodeController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
 
   String? errorMessage;
-
-  static const String teacherCode = 'teacher123';
+  bool isLoading = false;
 
   @override
   void dispose() {
     accessCodeController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
     super.dispose();
   }
 
-  Future<void> _saveStudentSession(StudentData student) async {
-    final prefs = await SharedPreferences.getInstance();
+  Future<void> _handleLoginResult(AppLoginResult result) async {
+    if (!mounted) return;
 
-    await prefs.setString('currentStudentId', student.id);
-    await prefs.setString('currentStudentName', student.name);
-    await prefs.setString('currentStudentLevel', student.level);
-    await prefs.setString('currentStudentAccessCode', student.accessCode);
-    await prefs.setString('currentUserRole', 'student');
-  }
-
-  Future<void> _saveTeacherSession() async {
-  final prefs = await SharedPreferences.getInstance();
-
-  await prefs.setString('currentUserRole', 'teacher');
-  await prefs.setString('currentTeacherId', 'teacher_001');
-  await prefs.setString('currentTeacherName', 'Teacher');
-
-  await prefs.remove('currentStudentId');
-  await prefs.remove('currentStudentName');
-  await prefs.remove('currentStudentLevel');
-  await prefs.remove('currentStudentAccessCode');
-}
-
-  Future<void> _loginWithCode() async {
-    final String code = accessCodeController.text.trim().toLowerCase();
-
-    if (code == teacherCode) {
-      await _saveTeacherSession();
-
-      if (!mounted) return;
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const TeacherHomeScreen(),
-        ),
-      );
+    if (!result.isSuccess) {
+      setState(() {
+        isLoading = false;
+        errorMessage = result.errorMessage;
+      });
       return;
     }
 
-    StudentData? matchedStudent;
+    final session = result.session;
+    if (session == null) return;
 
-    for (final student in studentsData) {
-      if (student.accessCode.toLowerCase() == code) {
-        matchedStudent = student;
-        break;
-      }
-    }
+    setState(() {
+      isLoading = false;
+    });
 
-    if (matchedStudent != null) {
-      await _saveStudentSession(matchedStudent);
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => session.isTeacher
+            ? const TeacherHomeScreen()
+            : const StudentHomeScreen(),
+      ),
+    );
+  }
 
-      if (!mounted) return;
+  Future<void> _loginWithEmail() async {
+    final email = emailController.text.trim();
+    final password = passwordController.text;
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const StudentHomeScreen(),
-        ),
-      );
+    if (email.isEmpty || password.isEmpty) {
+      setState(() {
+        errorMessage = 'Enter email and password.';
+      });
       return;
     }
 
     setState(() {
-      errorMessage = 'Invalid access code. Please check and try again.';
+      isLoading = true;
+      errorMessage = null;
     });
+
+    final result = await AppAuthService.signInWithEmail(
+      email: email,
+      password: password,
+    );
+
+    await _handleLoginResult(result);
+  }
+
+  Future<void> _loginWithCode() async {
+    final code = accessCodeController.text.trim();
+
+    if (code.isEmpty) {
+      setState(() {
+        errorMessage = 'Enter an access code.';
+      });
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    final result = await AppAuthService.signInWithDemoCode(code);
+
+    await _handleLoginResult(result);
   }
 
   void _fillDemoCode(String code) {
@@ -100,27 +108,65 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
-  Widget _buildDemoCodeButton({
+  Widget _buildInput({
+    required TextEditingController controller,
     required String label,
-    required String code,
+    required String hint,
+    required IconData icon,
+    bool obscureText = false,
+    TextInputType? keyboardType,
+    void Function(String)? onSubmitted,
   }) {
-    return OutlinedButton(
-      onPressed: () => _fillDemoCode(code),
-      style: OutlinedButton.styleFrom(
-        side: const BorderSide(color: Colors.white24),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+    return TextField(
+      controller: controller,
+      obscureText: obscureText,
+      keyboardType: keyboardType,
+      textCapitalization: TextCapitalization.none,
+      style: const TextStyle(color: Colors.white, fontSize: 16),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Colors.white70),
+        hintText: hint,
+        hintStyle: const TextStyle(color: Colors.white38),
+        filled: true,
+        fillColor: const Color(0xFF121212),
+        prefixIcon: Icon(icon, color: Colors.white54),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Colors.white24),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Color(0xFFB00020)),
         ),
       ),
-      child: Text(
-        label,
-        style: const TextStyle(color: Colors.white),
+      onSubmitted: onSubmitted,
+      onChanged: (_) {
+        if (errorMessage != null) {
+          setState(() {
+            errorMessage = null;
+          });
+        }
+      },
+    );
+  }
+
+  Widget _buildDemoCodeButton({required String label, required String code}) {
+    return OutlinedButton(
+      onPressed: isLoading ? null : () => _fillDemoCode(code),
+      style: OutlinedButton.styleFrom(
+        side: const BorderSide(color: Colors.white24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
+      child: Text(label, style: const TextStyle(color: Colors.white)),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final isSupabaseConfigured = SupabaseBootstrap.isConfigured;
+
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
@@ -155,9 +201,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     size: 46,
                   ),
                 ),
-
                 const SizedBox(height: 22),
-
                 const Text(
                   'Welcome to SpeakNation',
                   textAlign: TextAlign.center,
@@ -167,11 +211,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-
                 const SizedBox(height: 10),
-
                 const Text(
-                  'Enter your access code to continue.',
+                  'Sign in with your account or use a demo access code.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white70,
@@ -179,64 +221,90 @@ class _LoginScreenState extends State<LoginScreen> {
                     height: 1.4,
                   ),
                 ),
-
                 const SizedBox(height: 28),
-
-                TextField(
+                if (isSupabaseConfigured) ...[
+                  _buildInput(
+                    controller: emailController,
+                    label: 'Email',
+                    hint: 'you@example.com',
+                    icon: Icons.email_outlined,
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildInput(
+                    controller: passwordController,
+                    label: 'Password',
+                    hint: 'Your password',
+                    icon: Icons.lock_outline,
+                    obscureText: true,
+                    onSubmitted: (_) => _loginWithEmail(),
+                  ),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton.icon(
+                      onPressed: isLoading ? null : _loginWithEmail,
+                      icon: isLoading
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.login_rounded),
+                      label: const Text(
+                        'Sign In',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFB00020),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+                  const Divider(color: Colors.white12),
+                  const SizedBox(height: 18),
+                ],
+                _buildInput(
                   controller: accessCodeController,
-                  textCapitalization: TextCapitalization.none,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    letterSpacing: 1.2,
-                  ),
-                  decoration: InputDecoration(
-                    labelText: 'Access code',
-                    labelStyle: const TextStyle(color: Colors.white70),
-                    hintText: 'Example: joao123',
-                    hintStyle: const TextStyle(color: Colors.white38),
-                    filled: true,
-                    fillColor: const Color(0xFF121212),
-                    prefixIcon: const Icon(
-                      Icons.lock_rounded,
-                      color: Colors.white54,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: Colors.white24),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: Color(0xFFB00020)),
-                    ),
-                    errorText: errorMessage,
-                  ),
+                  label: 'Demo access code',
+                  hint: 'Example: joao123',
+                  icon: Icons.vpn_key_outlined,
                   onSubmitted: (_) => _loginWithCode(),
-                  onChanged: (_) {
-                    if (errorMessage != null) {
-                      setState(() {
-                        errorMessage = null;
-                      });
-                    }
-                  },
                 ),
-
+                if (errorMessage != null) ...[
+                  const SizedBox(height: 10),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      errorMessage!,
+                      style: const TextStyle(
+                        color: Colors.orangeAccent,
+                        fontSize: 13,
+                        height: 1.3,
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 18),
-
                 SizedBox(
                   width: double.infinity,
                   height: 54,
                   child: ElevatedButton.icon(
-                    onPressed: _loginWithCode,
-                    icon: const Icon(
-                      Icons.login_rounded,
-                      color: Colors.white,
-                    ),
+                    onPressed: isLoading ? null : _loginWithCode,
+                    icon: const Icon(Icons.play_arrow_rounded),
                     label: const Text(
-                      'Enter App',
+                      'Enter Demo',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -251,9 +319,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 22),
-
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(14),
@@ -273,14 +339,12 @@ class _LoginScreenState extends State<LoginScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-
                       const SizedBox(height: 10),
-
                       Row(
                         children: [
                           Expanded(
                             child: _buildDemoCodeButton(
-                              label: 'João',
+                              label: 'Joao',
                               code: 'joao123',
                             ),
                           ),
@@ -293,9 +357,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 10),
-
                       Row(
                         children: [
                           Expanded(
@@ -308,33 +370,25 @@ class _LoginScreenState extends State<LoginScreen> {
                           Expanded(
                             child: _buildDemoCodeButton(
                               label: 'Teacher',
-                              code: teacherCode,
+                              code: AppAuthService.teacherCode,
                             ),
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 10),
-
                       const Text(
-                        'Students: joao123, maria123, ana123 • Teacher: teacher123',
-                        style: TextStyle(
-                          color: Colors.white38,
-                          fontSize: 12,
-                        ),
+                        'Students: joao123, maria123, ana123 - Teacher: teacher123',
+                        style: TextStyle(color: Colors.white38, fontSize: 12),
                       ),
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 18),
-
-                const Text(
-                  'MVP version',
-                  style: TextStyle(
-                    color: Colors.white38,
-                    fontSize: 13,
-                  ),
+                Text(
+                  isSupabaseConfigured
+                      ? 'Supabase connected - MVP version'
+                      : 'Local demo mode - MVP version',
+                  style: const TextStyle(color: Colors.white38, fontSize: 13),
                 ),
               ],
             ),

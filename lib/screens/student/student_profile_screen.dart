@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/assigned_activity.dart';
 import '../../services/assignment_service.dart';
+import '../../services/app_auth_service.dart';
 import '../../services/student_progress_service.dart';
 import '../login_screen.dart';
 
@@ -145,12 +146,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
   }
 
   Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    await prefs.remove('currentStudentId');
-    await prefs.remove('currentStudentName');
-    await prefs.remove('currentStudentLevel');
-    await prefs.remove('currentUserRole');
+    await AppAuthService.signOut();
 
     if (!mounted) return;
 

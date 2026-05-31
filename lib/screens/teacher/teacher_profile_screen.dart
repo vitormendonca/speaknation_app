@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../services/app_auth_service.dart';
 import '../login_screen.dart';
 
 class TeacherProfileScreen extends StatefulWidget {
@@ -30,22 +31,13 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
   }
 
   Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    await prefs.remove('currentUserRole');
-    await prefs.remove('currentStudentId');
-    await prefs.remove('currentStudentName');
-    await prefs.remove('currentStudentLevel');
-    await prefs.remove('currentTeacherId');
-    await prefs.remove('currentTeacherName');
+    await AppAuthService.signOut();
 
     if (!mounted) return;
 
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(
-        builder: (context) => const LoginScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
       (route) => false,
     );
   }
@@ -56,10 +48,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
       builder: (context) {
         return AlertDialog(
           backgroundColor: const Color(0xFF1E1E1E),
-          title: const Text(
-            'Logout',
-            style: TextStyle(color: Colors.white),
-          ),
+          title: const Text('Logout', style: TextStyle(color: Colors.white)),
           content: const Text(
             'Do you want to leave this teacher account?',
             style: TextStyle(color: Colors.white70),
