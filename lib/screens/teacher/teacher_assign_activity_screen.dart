@@ -101,9 +101,10 @@ class _TeacherAssignActivityScreenState
     final Map<String, String> loadedStatuses = {};
 
     final List<AssignedActivity> assignments =
-        await AssignmentService.getAssignedActivitiesByStudentName(
-      widget.studentName,
-    );
+        await AssignmentService.getAssignedActivitiesForStudent(
+          studentId: widget.studentId,
+          studentName: widget.studentName,
+        );
 
     for (final activity in availableActivities) {
       final id = activity['id'] ?? '';
@@ -123,9 +124,9 @@ class _TeacherAssignActivityScreenState
 
       final bool completedByStudent =
           await StudentProgressService.isActivityCompleted(
-        activityId: id,
-        category: _progressCategory(type),
-      );
+            activityId: id,
+            category: _progressCategory(type),
+          );
 
       final score = await StudentProgressService.getActivityScore(
         activityId: id,
@@ -205,6 +206,7 @@ class _TeacherAssignActivityScreenState
     });
 
     final wasAssigned = await AssignmentService.assignActivityToStudent(
+      studentId: widget.studentId,
       studentName: widget.studentName,
       title: selectedActivity['title'] ?? '',
       category: selectedActivity['type'] ?? '',
@@ -334,9 +336,7 @@ class _TeacherAssignActivityScreenState
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E1E),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: Colors.white10,
-        ),
+        border: Border.all(color: Colors.white10),
       ),
       child: Row(
         children: [
@@ -368,20 +368,14 @@ class _TeacherAssignActivityScreenState
                 const SizedBox(height: 4),
                 Text(
                   'Level ${widget.studentLevel}',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
                 ),
               ],
             ),
           ),
           IconButton(
             onPressed: isSaving ? null : _loadActivityStatuses,
-            icon: const Icon(
-              Icons.refresh,
-              color: Colors.white70,
-            ),
+            icon: const Icon(Icons.refresh, color: Colors.white70),
           ),
         ],
       ),
@@ -437,16 +431,16 @@ class _TeacherAssignActivityScreenState
       color: !canAssign
           ? statusColor.withValues(alpha: 0.12)
           : isSelected
-              ? const Color(0xFF6E59A5).withValues(alpha: 0.28)
-              : const Color(0xFF1E1E1E),
+          ? const Color(0xFF6E59A5).withValues(alpha: 0.28)
+          : const Color(0xFF1E1E1E),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
         side: BorderSide(
           color: !canAssign
               ? statusColor
               : isSelected
-                  ? const Color(0xFFD3E4FD)
-                  : Colors.white10,
+              ? const Color(0xFFD3E4FD)
+              : Colors.white10,
           width: isSelected || !canAssign ? 1.4 : 1,
         ),
       ),
@@ -527,13 +521,13 @@ class _TeacherAssignActivityScreenState
                 !canAssign
                     ? _getStatusIcon(status, activityType)
                     : isSelected
-                        ? Icons.radio_button_checked
-                        : Icons.radio_button_unchecked,
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_unchecked,
                 color: !canAssign
                     ? statusColor
                     : isSelected
-                        ? const Color(0xFFD3E4FD)
-                        : Colors.white38,
+                    ? const Color(0xFFD3E4FD)
+                    : Colors.white38,
               ),
             ],
           ),
@@ -542,21 +536,13 @@ class _TeacherAssignActivityScreenState
     );
   }
 
-  Widget _smallTag({
-    required String text,
-    required Color color,
-  }) {
+  Widget _smallTag({required String text, required Color color}) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 10,
-        vertical: 5,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: color.withValues(alpha: 0.45),
-        ),
+        border: Border.all(color: color.withValues(alpha: 0.45)),
       ),
       child: Text(
         text,
@@ -580,10 +566,7 @@ class _TeacherAssignActivityScreenState
       ),
       child: Text(
         'No $selectedCategory activities available yet.',
-        style: const TextStyle(
-          color: Colors.white70,
-          fontSize: 15,
-        ),
+        style: const TextStyle(color: Colors.white70, fontSize: 15),
       ),
     );
   }
@@ -610,11 +593,7 @@ class _TeacherAssignActivityScreenState
           padding: const EdgeInsets.all(16),
           decoration: const BoxDecoration(
             color: Color(0xFF121212),
-            border: Border(
-              top: BorderSide(
-                color: Colors.white10,
-              ),
-            ),
+            border: Border(top: BorderSide(color: Colors.white10)),
           ),
           child: ElevatedButton.icon(
             onPressed: isSaving || isLoadingStatuses ? null : _assignActivity,
@@ -632,20 +611,19 @@ class _TeacherAssignActivityScreenState
               isLoadingStatuses
                   ? 'Loading...'
                   : isSaving
-                      ? 'Assigning...'
-                      : selectedActivity == null
-                          ? 'Select an Activity'
-                          : 'Assign ${selectedActivity['title']}',
+                  ? 'Assigning...'
+                  : selectedActivity == null
+                  ? 'Select an Activity'
+                  : 'Assign ${selectedActivity['title']}',
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF6E59A5),
               foregroundColor: Colors.white,
-              disabledBackgroundColor:
-                  const Color(0xFF6E59A5).withValues(alpha: 0.45),
+              disabledBackgroundColor: const Color(
+                0xFF6E59A5,
+              ).withValues(alpha: 0.45),
               disabledForegroundColor: Colors.white70,
-              padding: const EdgeInsets.symmetric(
-                vertical: 15,
-              ),
+              padding: const EdgeInsets.symmetric(vertical: 15),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -705,9 +683,7 @@ class _TeacherAssignActivityScreenState
               const Center(
                 child: Padding(
                   padding: EdgeInsets.all(24),
-                  child: CircularProgressIndicator(
-                    color: Color(0xFF6E59A5),
-                  ),
+                  child: CircularProgressIndicator(color: Color(0xFF6E59A5)),
                 ),
               )
             else if (activitiesToShow.isEmpty)

@@ -36,10 +36,10 @@ class _TeacherStudentDetailScreenState
   }
 
   Future<void> _loadAssignedActivities() async {
-    final activities =
-        await AssignmentService.getAssignedActivitiesByStudentName(
-          widget.studentName,
-        );
+    final activities = await AssignmentService.getAssignedActivitiesForStudent(
+      studentId: widget.studentId,
+      studentName: widget.studentName,
+    );
 
     if (!mounted) return;
 

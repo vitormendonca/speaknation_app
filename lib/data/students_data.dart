@@ -15,7 +15,7 @@ class StudentData {
 const List<StudentData> studentsData = [
   StudentData(
     id: 'student_001',
-    name: 'João Silva',
+    name: 'Joao Silva',
     level: 'A1',
     accessCode: 'joao123',
   ),
