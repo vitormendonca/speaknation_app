@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../models/assigned_activity.dart';
 import '../../services/assignment_service.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/app_ui.dart';
 import 'teacher_assign_activity_screen.dart';
 
 class TeacherStudentAssignedActivitiesScreen extends StatefulWidget {
@@ -71,15 +73,13 @@ class _TeacherStudentAssignedActivitiesScreenState
     final shouldDelete = await showDialog<bool>(
       context: context,
       builder: (context) {
+        final colors = Theme.of(context).colorScheme;
+
         return AlertDialog(
-          backgroundColor: const Color(0xFF1E1E1E),
-          title: const Text(
-            'Remove assignment?',
-            style: TextStyle(color: Colors.white),
-          ),
+          title: const Text('Remove assignment?'),
           content: Text(
-            'Are you sure you want to remove "${activity.title}" from ${widget.studentName}?',
-            style: const TextStyle(color: Colors.white70, height: 1.4),
+            'Remove "${activity.title}" from ${widget.studentName}?',
+            style: TextStyle(color: colors.onSurfaceVariant, height: 1.4),
           ),
           actions: [
             TextButton(
@@ -92,10 +92,7 @@ class _TeacherStudentAssignedActivitiesScreenState
               onPressed: () {
                 Navigator.pop(context, true);
               },
-              child: const Text(
-                'Remove',
-                style: TextStyle(color: Colors.redAccent),
-              ),
+              child: const Text('Remove'),
             ),
           ],
         );
@@ -111,15 +108,9 @@ class _TeacherStudentAssignedActivitiesScreenState
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).clearSnackBars();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Assigned activity removed.'),
-        backgroundColor: Colors.redAccent,
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(milliseconds: 1200),
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Assigned activity removed.')));
 
     await _loadAssignedActivities();
   }
@@ -128,15 +119,13 @@ class _TeacherStudentAssignedActivitiesScreenState
     final shouldReview = await showDialog<bool>(
       context: context,
       builder: (context) {
+        final colors = Theme.of(context).colorScheme;
+
         return AlertDialog(
-          backgroundColor: const Color(0xFF1E1E1E),
-          title: const Text(
-            'Mark as reviewed?',
-            style: TextStyle(color: Colors.white),
-          ),
+          title: const Text('Mark as reviewed?'),
           content: Text(
-            'Do you want to mark "${activity.title}" as reviewed for ${widget.studentName}?',
-            style: const TextStyle(color: Colors.white70, height: 1.4),
+            'Mark "${activity.title}" as reviewed for ${widget.studentName}?',
+            style: TextStyle(color: colors.onSurfaceVariant, height: 1.4),
           ),
           actions: [
             TextButton(
@@ -149,10 +138,7 @@ class _TeacherStudentAssignedActivitiesScreenState
               onPressed: () {
                 Navigator.pop(context, true);
               },
-              child: const Text(
-                'Mark as Reviewed',
-                style: TextStyle(color: Colors.greenAccent),
-              ),
+              child: const Text('Mark as Reviewed'),
             ),
           ],
         );
@@ -168,14 +154,8 @@ class _TeacherStudentAssignedActivitiesScreenState
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).clearSnackBars();
-
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Assignment marked as reviewed.'),
-        backgroundColor: Colors.green,
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(milliseconds: 1200),
-      ),
+      const SnackBar(content: Text('Assignment marked as reviewed.')),
     );
 
     await _loadAssignedActivities();
@@ -184,52 +164,54 @@ class _TeacherStudentAssignedActivitiesScreenState
   IconData _getActivityIcon(String category) {
     switch (category) {
       case 'Listening':
-        return Icons.headphones;
+        return Icons.headphones_outlined;
       case 'Vocabulary':
-        return Icons.menu_book;
+        return Icons.style_outlined;
       case 'Homework':
-        return Icons.assignment;
+        return Icons.edit_note_outlined;
       case 'Reading':
-        return Icons.article;
+        return Icons.menu_book_outlined;
       default:
-        return Icons.task_alt;
+        return Icons.task_alt_outlined;
     }
   }
 
   Color _getStatusColor(String status) {
     switch (status) {
       case 'Completed':
-        return Colors.greenAccent;
+        return AppTheme.success;
       case 'Reviewed':
-        return Colors.blueAccent;
+        return AppTheme.info;
       case 'Review Needed':
-        return Colors.orangeAccent;
+        return AppTheme.warning;
       case 'Pending':
       default:
-        return Colors.amberAccent;
+        return AppTheme.warning;
     }
   }
 
   IconData _getStatusIcon(String status) {
     switch (status) {
       case 'Completed':
-        return Icons.check_circle;
+        return Icons.check_circle_outline;
       case 'Reviewed':
-        return Icons.verified;
+        return Icons.verified_outlined;
       case 'Review Needed':
-        return Icons.info;
+        return Icons.rate_review_outlined;
       case 'Pending':
       default:
-        return Icons.hourglass_empty;
+        return Icons.hourglass_empty_rounded;
     }
   }
 
   Widget _buildActionIcon(AssignedActivity activity) {
+    final colors = Theme.of(context).colorScheme;
+
     if (activity.status == 'Pending') {
       return IconButton(
         tooltip: 'Remove assignment',
         onPressed: () => _confirmDeleteAssignment(activity),
-        icon: const Icon(Icons.delete_outline, color: Colors.white38),
+        icon: Icon(Icons.delete_outline, color: colors.onSurfaceVariant),
       );
     }
 
@@ -237,14 +219,14 @@ class _TeacherStudentAssignedActivitiesScreenState
       return IconButton(
         tooltip: 'Mark as reviewed',
         onPressed: () => _confirmMarkAsReviewed(activity),
-        icon: const Icon(Icons.check_circle_outline, color: Colors.greenAccent),
+        icon: const Icon(Icons.check_circle_outline, color: AppTheme.success),
       );
     }
 
     if (activity.status == 'Reviewed') {
       return const Padding(
         padding: EdgeInsets.only(top: 8),
-        child: Icon(Icons.verified, color: Colors.blueAccent),
+        child: Icon(Icons.verified_outlined, color: AppTheme.info),
       );
     }
 
@@ -252,172 +234,113 @@ class _TeacherStudentAssignedActivitiesScreenState
   }
 
   Widget _buildAssignedActivityCard(AssignedActivity activity) {
+    final colors = Theme.of(context).colorScheme;
     final statusColor = _getStatusColor(activity.status);
     final statusIcon = _getStatusIcon(activity.status);
 
-    return Card(
-      color: const Color(0xFF1E1E1E),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Row(
-          children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: const Color(0xFF6E59A5).withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Icon(
-                _getActivityIcon(activity.category),
-                color: const Color(0xFFD3E4FD),
-                size: 28,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    activity.title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '${activity.category} • Level ${activity.level}',
-                    style: const TextStyle(color: Colors.white70, fontSize: 14),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Due date: ${activity.dueDate}',
-                    style: const TextStyle(color: Colors.white38, fontSize: 12),
-                  ),
-                  if (activity.status == 'Completed') ...[
-                    const SizedBox(height: 6),
-                    const Text(
-                      'Waiting for teacher review.',
-                      style: TextStyle(
-                        color: Colors.greenAccent,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                  if (activity.status == 'Reviewed') ...[
-                    const SizedBox(height: 6),
-                    const Text(
-                      'Reviewed by teacher.',
-                      style: TextStyle(
-                        color: Colors.blueAccent,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                  if (activity.note.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      'Note: ${activity.note}',
-                      style: const TextStyle(
-                        color: Colors.white38,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+    return AppPanel(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        children: [
+          AppIconBox(
+            icon: _getActivityIcon(activity.category),
+            color: statusColor,
+          ),
+          const SizedBox(width: 13),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.16),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(statusIcon, color: statusColor, size: 14),
-                      const SizedBox(width: 5),
-                      Text(
-                        activity.status,
-                        style: TextStyle(
-                          color: statusColor,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
+                Text(
+                  activity.title,
+                  style: TextStyle(
+                    color: colors.onSurface,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
+                const SizedBox(height: 5),
+                Text(
+                  '${activity.category} - Level ${activity.level}',
+                  style: TextStyle(
+                    color: colors.onSurfaceVariant,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Due date: ${activity.dueDate}',
+                  style: TextStyle(
+                    color: colors.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
+                ),
+                if (activity.note.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Note: ${activity.note}',
+                    style: TextStyle(
+                      color: colors.onSurfaceVariant,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 8),
-                _buildActionIcon(activity),
+                AppStatusBadge(
+                  label: activity.status,
+                  color: statusColor,
+                  icon: statusIcon,
+                ),
               ],
             ),
-          ],
-        ),
+          ),
+          const SizedBox(width: 8),
+          _buildActionIcon(activity),
+        ],
       ),
     );
   }
 
   Widget _buildEmptyState() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white10),
-      ),
+    final colors = Theme.of(context).colorScheme;
+
+    return AppPanel(
+      padding: const EdgeInsets.all(22),
       child: Column(
         children: [
-          const Icon(
+          Icon(
             Icons.assignment_outlined,
-            color: Colors.white38,
-            size: 54,
+            color: colors.onSurfaceVariant,
+            size: 52,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           Text(
             'No activities assigned to ${widget.studentName} yet',
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: colors.onSurface,
               fontSize: 18,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w800,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Assign an activity now without going back to the student profile.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.4),
+            style: TextStyle(
+              color: colors.onSurfaceVariant,
+              fontSize: 14,
+              height: 1.4,
+            ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: _openAssignActivityScreen,
-              icon: const Icon(Icons.add_task),
+              icon: const Icon(Icons.add_task_outlined),
               label: const Text('Assign Activity'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6E59A5),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
             ),
           ),
         ],
@@ -429,7 +352,7 @@ class _TeacherStudentAssignedActivitiesScreenState
     return const Center(
       child: Padding(
         padding: EdgeInsets.only(top: 80),
-        child: CircularProgressIndicator(color: Color(0xFF6E59A5)),
+        child: CircularProgressIndicator(),
       ),
     );
   }
@@ -439,13 +362,11 @@ class _TeacherStudentAssignedActivitiesScreenState
     final hasAssignedActivities = assignedActivities.isNotEmpty;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF121212),
-        elevation: 0,
         title: const Text('Student Activities'),
         actions: [
           IconButton(
+            tooltip: 'Refresh activities',
             onPressed: _loadAssignedActivities,
             icon: const Icon(Icons.refresh),
           ),
@@ -454,36 +375,21 @@ class _TeacherStudentAssignedActivitiesScreenState
       floatingActionButton: hasAssignedActivities
           ? FloatingActionButton.extended(
               onPressed: _openAssignActivityScreen,
-              backgroundColor: const Color(0xFF6E59A5),
-              foregroundColor: Colors.white,
-              icon: const Icon(Icons.add_task),
+              icon: const Icon(Icons.add_task_outlined),
               label: const Text('Assign'),
             )
           : null,
       body: RefreshIndicator(
         onRefresh: _loadAssignedActivities,
-        color: const Color(0xFF6E59A5),
+        color: AppTheme.brandRed,
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            Text(
-              widget.studentName,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-              ),
+            AppSectionHeader(
+              title: widget.studentName,
+              subtitle: 'Activities assigned to this student.',
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Activities assigned to this student.',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 15,
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             if (isLoading)
               _buildLoadingState()
             else if (!hasAssignedActivities)

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../services/app_auth_service.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/app_ui.dart';
 import '../login_screen.dart';
 
 class TeacherProfileScreen extends StatefulWidget {
@@ -46,31 +48,26 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
     final shouldLogout = await showDialog<bool>(
       context: context,
       builder: (context) {
+        final colors = Theme.of(context).colorScheme;
+
         return AlertDialog(
-          backgroundColor: const Color(0xFF1E1E1E),
-          title: const Text('Logout', style: TextStyle(color: Colors.white)),
-          content: const Text(
+          title: const Text('Logout'),
+          content: Text(
             'Do you want to leave this teacher account?',
-            style: TextStyle(color: Colors.white70),
+            style: TextStyle(color: colors.onSurfaceVariant),
           ),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.pop(context, false);
               },
-              child: const Text(
-                'Cancel',
-                style: TextStyle(color: Colors.white70),
-              ),
+              child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
                 Navigator.pop(context, true);
               },
-              child: const Text(
-                'Logout',
-                style: TextStyle(color: Color(0xFFE53935)),
-              ),
+              child: const Text('Logout'),
             ),
           ],
         );
@@ -84,58 +81,41 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
-      appBar: AppBar(
-        title: const Text('Teacher Profile'),
-        backgroundColor: const Color(0xFF121212),
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
+      appBar: AppBar(title: const Text('Teacher Profile')),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E1E1E),
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: Colors.white12),
-            ),
+          AppPanel(
+            padding: const EdgeInsets.all(18),
             child: Row(
               children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF6E59A5).withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Icon(
-                    Icons.person,
-                    color: Color(0xFFD3E4FD),
-                    size: 36,
-                  ),
+                const AppIconBox(
+                  icon: Icons.person_outline,
+                  color: AppTheme.brandRed,
+                  size: 58,
+                  iconSize: 32,
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Teacher Profile',
                         style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
+                          color: colors.onSurface,
+                          fontSize: 23,
+                          fontWeight: FontWeight.w900,
                         ),
                       ),
                       const SizedBox(height: 6),
                       Text(
                         teacherName,
-                        style: const TextStyle(
-                          color: Colors.white70,
+                        style: TextStyle(
+                          color: colors.onSurfaceVariant,
                           fontSize: 15,
                           height: 1.4,
                         ),
@@ -146,133 +126,92 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
               ],
             ),
           ),
-
-          const SizedBox(height: 22),
-
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E1E1E),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.white12),
-            ),
-            child: const Column(
+          const SizedBox(height: 18),
+          AppPanel(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Account Type',
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
+                    color: colors.onSurface,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-                SizedBox(height: 10),
-                Text(
-                  'Teacher',
-                  style: TextStyle(
-                    color: Color(0xFFD3E4FD),
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                const SizedBox(height: 10),
+                const AppStatusBadge(
+                  label: 'Teacher',
+                  color: AppTheme.info,
+                  icon: Icons.school_outlined,
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Text(
                   'You can manage students, assign activities, and check student progress.',
                   style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 15,
+                    color: colors.onSurfaceVariant,
+                    fontSize: 14,
                     height: 1.4,
                   ),
                 ),
               ],
             ),
           ),
-
-          const SizedBox(height: 22),
-
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E1E1E),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.white12),
-            ),
-            child: const Column(
+          const SizedBox(height: 12),
+          AppPanel(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Teacher Tools',
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
+                    color: colors.onSurface,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 Text(
                   'More teacher settings, school information, and account customization will appear here in future versions.',
                   style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 15,
+                    color: colors.onSurfaceVariant,
+                    fontSize: 14,
                     height: 1.4,
                   ),
                 ),
               ],
             ),
           ),
-
-          const SizedBox(height: 22),
-
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E1E1E),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.white12),
-            ),
+          const SizedBox(height: 12),
+          AppPanel(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Account',
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
+                    color: colors.onSurface,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 10),
-                const Text(
+                Text(
                   'Use this option only when you want to leave this account or switch users.',
                   style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 15,
+                    color: colors.onSurfaceVariant,
+                    fontSize: 14,
                     height: 1.4,
                   ),
                 ),
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
-                  height: 52,
+                  height: 48,
                   child: OutlinedButton.icon(
                     onPressed: confirmLogout,
                     icon: const Icon(Icons.logout),
                     label: const Text('Logout'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFE53935),
-                      side: const BorderSide(color: Color(0xFFE53935)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      textStyle: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
                   ),
                 ),
               ],

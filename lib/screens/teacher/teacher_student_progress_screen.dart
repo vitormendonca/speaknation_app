@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../data/learning_path_data.dart';
 import '../../services/learning_path_progress_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/app_ui.dart';
 
 class TeacherStudentProgressScreen extends StatefulWidget {
   final String studentId;
@@ -85,10 +86,7 @@ class _TeacherStudentProgressScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF121212),
-        elevation: 0,
         title: const Text('Student Progress'),
         actions: [
           IconButton(
@@ -104,24 +102,21 @@ class _TeacherStudentProgressScreenState
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            _headerCard(),
+            _headerCard(context),
             const SizedBox(height: 18),
             if (isLoading)
               _loadingState()
             else ...[
-              _overallCard(),
+              _overallCard(context),
               const SizedBox(height: 18),
-              const Text(
-                'Learning Path',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 21,
-                  fontWeight: FontWeight.bold,
-                ),
+              const AppSectionHeader(
+                title: 'Learning Path',
+                subtitle:
+                    'Progress by skill across lessons, reviews and tests.',
               ),
               const SizedBox(height: 12),
               for (final skill in learningSkillDefinitions)
-                _skillProgressCard(skill),
+                _skillProgressCard(context, skill),
             ],
           ],
         ),
@@ -129,22 +124,23 @@ class _TeacherStudentProgressScreenState
     );
   }
 
-  Widget _headerCard() {
-    return Container(
-      width: double.infinity,
+  Widget _headerCard(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final initial = widget.studentName.isEmpty ? '?' : widget.studentName[0];
+
+    return AppPanel(
       padding: const EdgeInsets.all(18),
-      decoration: _cardDecoration(),
       child: Row(
         children: [
           CircleAvatar(
             radius: 28,
-            backgroundColor: AppTheme.brandRed,
+            backgroundColor: AppTheme.brandRed.withValues(alpha: 0.14),
             child: Text(
-              widget.studentName.isEmpty ? '?' : widget.studentName[0],
+              initial,
               style: const TextStyle(
-                color: Colors.white,
+                color: AppTheme.brandRed,
                 fontSize: 23,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w900,
               ),
             ),
           ),
@@ -155,16 +151,16 @@ class _TeacherStudentProgressScreenState
               children: [
                 Text(
                   widget.studentName,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: colors.onSurface,
                     fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Level ${widget.studentLevel}',
-                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                const SizedBox(height: 6),
+                AppStatusBadge(
+                  label: 'Level ${widget.studentLevel}',
+                  color: AppTheme.info,
                 ),
               ],
             ),
@@ -174,47 +170,40 @@ class _TeacherStudentProgressScreenState
     );
   }
 
-  Widget _overallCard() {
-    return Container(
-      width: double.infinity,
+  Widget _overallCard(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return AppPanel(
       padding: const EdgeInsets.all(18),
-      decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: AppTheme.info.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.query_stats_outlined,
-                  color: AppTheme.info,
-                  size: 28,
-                ),
+              const AppIconBox(
+                icon: Icons.query_stats_outlined,
+                color: AppTheme.info,
+                size: 50,
+                iconSize: 28,
               ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Overall Progress',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: colors.onSurface,
                         fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       '$totalCompletedSteps/$totalSteps path steps completed',
-                      style: const TextStyle(
-                        color: Colors.white70,
+                      style: TextStyle(
+                        color: colors.onSurfaceVariant,
                         fontSize: 13,
                       ),
                     ),
@@ -223,8 +212,8 @@ class _TeacherStudentProgressScreenState
               ),
               Text(
                 '$overallPercent%',
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: colors.onSurface,
                   fontSize: 28,
                   fontWeight: FontWeight.w900,
                 ),
@@ -238,25 +227,25 @@ class _TeacherStudentProgressScreenState
               value: totalSteps == 0 ? 0 : totalCompletedSteps / totalSteps,
               minHeight: 9,
               color: AppTheme.info,
-              backgroundColor: Colors.white12,
+              backgroundColor: colors.surfaceContainerHighest,
             ),
           ),
           const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
-                child: _summaryTile(
+                child: AppMetricCard(
                   icon: Icons.play_lesson_outlined,
-                  label: 'Lessons',
+                  title: 'Lessons',
                   value: totalLessonsCompleted.toString(),
                   color: AppTheme.success,
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: _summaryTile(
+                child: AppMetricCard(
                   icon: Icons.workspace_premium_outlined,
-                  label: 'Final Tests',
+                  title: 'Final Tests',
                   value: '$finalTestsPassed/5',
                   color: AppTheme.brandRed,
                 ),
@@ -268,47 +257,11 @@ class _TeacherStudentProgressScreenState
     );
   }
 
-  Widget _summaryTile({
-    required IconData icon,
-    required String label,
-    required String value,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF252525),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white10),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: color, size: 22),
-          const SizedBox(width: 9),
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white60,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _skillProgressCard(LearningSkillDefinition skill) {
+  Widget _skillProgressCard(
+    BuildContext context,
+    LearningSkillDefinition skill,
+  ) {
+    final colors = Theme.of(context).colorScheme;
     final progress =
         progressBySkill[skill.id] ??
         LearningPathSkillProgress(
@@ -327,24 +280,15 @@ class _TeacherStudentProgressScreenState
         ? 0
         : ((completedSteps / totalSkillSteps) * 100).round();
 
-    return Container(
+    return AppPanel(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
-      decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(_skillIcon(skill.id), color: color, size: 26),
-              ),
+              AppIconBox(icon: _skillIcon(skill.id), color: color),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -352,17 +296,17 @@ class _TeacherStudentProgressScreenState
                   children: [
                     Text(
                       skill.title,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: colors.onSurface,
                         fontSize: 17,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
                       skill.description,
-                      style: const TextStyle(
-                        color: Colors.white60,
+                      style: TextStyle(
+                        color: colors.onSurfaceVariant,
                         fontSize: 12,
                         height: 1.3,
                       ),
@@ -390,7 +334,7 @@ class _TeacherStudentProgressScreenState
                   : completedSteps / totalSkillSteps,
               minHeight: 8,
               color: color,
-              backgroundColor: Colors.white12,
+              backgroundColor: colors.surfaceContainerHighest,
             ),
           ),
           const SizedBox(height: 12),
@@ -398,23 +342,23 @@ class _TeacherStudentProgressScreenState
             spacing: 8,
             runSpacing: 8,
             children: [
-              _statusChip(
+              AppStatusBadge(
                 label:
                     '${progress.completedLessons}/${progress.totalLessons} lessons',
                 color: color,
               ),
-              _statusChip(
+              AppStatusBadge(
                 label:
                     '${progress.completedReviews}/${progress.totalReviews} reviews',
                 color: AppTheme.warning,
               ),
-              _statusChip(
+              AppStatusBadge(
                 label: progress.finalTestCompleted
                     ? 'Final passed'
                     : 'Final pending',
                 color: progress.finalTestCompleted
                     ? AppTheme.success
-                    : Colors.white54,
+                    : colors.onSurfaceVariant,
               ),
             ],
           ),
@@ -423,39 +367,12 @@ class _TeacherStudentProgressScreenState
     );
   }
 
-  Widget _statusChip({required String label, required Color color}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(99),
-        border: Border.all(color: color.withValues(alpha: 0.35)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-
   Widget _loadingState() {
     return const Center(
       child: Padding(
         padding: EdgeInsets.only(top: 80),
-        child: CircularProgressIndicator(color: AppTheme.brandRed),
+        child: CircularProgressIndicator(),
       ),
-    );
-  }
-
-  BoxDecoration _cardDecoration() {
-    return BoxDecoration(
-      color: const Color(0xFF1E1E1E),
-      borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: Colors.white10),
     );
   }
 
@@ -464,7 +381,7 @@ class _TeacherStudentProgressScreenState
       case 'listening':
         return AppTheme.info;
       case 'speaking':
-        return const Color(0xFF7B1FA2);
+        return AppTheme.accentPurple;
       case 'reading':
         return const Color(0xFF00897B);
       case 'vocabulary':

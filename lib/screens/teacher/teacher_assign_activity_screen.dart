@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../models/assigned_activity.dart';
 import '../../services/assignment_service.dart';
 import '../../services/student_progress_service.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/app_ui.dart';
 
 class TeacherAssignActivityScreen extends StatefulWidget {
   final String studentId;
@@ -169,27 +171,17 @@ class _TeacherAssignActivityScreenState
   Future<void> _assignActivity() async {
     if (selectedActivityId == null) {
       ScaffoldMessenger.of(context).clearSnackBars();
-
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select an activity first.'),
-          backgroundColor: Colors.orange,
-          behavior: SnackBarBehavior.floating,
-          duration: Duration(milliseconds: 1200),
-        ),
+        const SnackBar(content: Text('Please select an activity first.')),
       );
       return;
     }
 
     if (!_canAssignActivity(selectedActivityId!)) {
       ScaffoldMessenger.of(context).clearSnackBars();
-
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('This activity already has a status for this student.'),
-          backgroundColor: Colors.orange,
-          behavior: SnackBarBehavior.floating,
-          duration: Duration(milliseconds: 1200),
         ),
       );
       return;
@@ -223,15 +215,11 @@ class _TeacherAssignActivityScreenState
 
     if (!wasAssigned) {
       ScaffoldMessenger.of(context).clearSnackBars();
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             '${selectedActivity['title']} is already pending for ${widget.studentName}.',
           ),
-          backgroundColor: Colors.orange,
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(milliseconds: 1200),
         ),
       );
 
@@ -248,15 +236,11 @@ class _TeacherAssignActivityScreenState
     });
 
     ScaffoldMessenger.of(context).clearSnackBars();
-
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           '${selectedActivity['title']} assigned to ${widget.studentName}.',
         ),
-        backgroundColor: Colors.green,
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(milliseconds: 1200),
       ),
     );
   }
@@ -264,41 +248,41 @@ class _TeacherAssignActivityScreenState
   IconData _getActivityIcon(String type) {
     switch (type) {
       case 'Listening':
-        return Icons.headphones;
+        return Icons.headphones_outlined;
       case 'Vocabulary':
-        return Icons.menu_book;
+        return Icons.style_outlined;
       case 'Homework':
-        return Icons.assignment;
+        return Icons.edit_note_outlined;
       case 'Reading':
-        return Icons.article;
+        return Icons.menu_book_outlined;
       default:
-        return Icons.task_alt;
+        return Icons.task_alt_outlined;
     }
   }
 
   Color _getCategoryColor(String type) {
     switch (type) {
       case 'Listening':
-        return Colors.blueAccent;
+        return AppTheme.info;
       case 'Vocabulary':
-        return Colors.purpleAccent;
+        return AppTheme.brandRed;
       case 'Homework':
-        return Colors.orangeAccent;
+        return AppTheme.warning;
       case 'Reading':
-        return Colors.greenAccent;
+        return const Color(0xFF00897B);
       default:
-        return const Color(0xFFD3E4FD);
+        return AppTheme.accentPurple;
     }
   }
 
   Color _getStatusColor(String status, String type) {
     switch (status) {
       case 'Completed':
-        return Colors.greenAccent;
+        return AppTheme.success;
       case 'Pending':
-        return Colors.amberAccent;
+        return AppTheme.warning;
       case 'Review Needed':
-        return Colors.orangeAccent;
+        return AppTheme.warning;
       default:
         return _getCategoryColor(type);
     }
@@ -307,11 +291,11 @@ class _TeacherAssignActivityScreenState
   IconData _getStatusIcon(String status, String type) {
     switch (status) {
       case 'Completed':
-        return Icons.check_circle;
+        return Icons.check_circle_outline;
       case 'Pending':
-        return Icons.hourglass_empty;
+        return Icons.hourglass_empty_rounded;
       case 'Review Needed':
-        return Icons.info;
+        return Icons.rate_review_outlined;
       default:
         return _getActivityIcon(type);
     }
@@ -331,24 +315,22 @@ class _TeacherAssignActivityScreenState
   }
 
   Widget _buildStudentInfoBox() {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white10),
-      ),
+    final colors = Theme.of(context).colorScheme;
+    final initial = widget.studentName.isEmpty ? '?' : widget.studentName[0];
+
+    return AppPanel(
+      padding: const EdgeInsets.all(14),
       child: Row(
         children: [
           CircleAvatar(
-            radius: 26,
-            backgroundColor: const Color(0xFF6E59A5),
+            radius: 25,
+            backgroundColor: AppTheme.brandRed.withValues(alpha: 0.14),
             child: Text(
-              widget.studentName[0],
+              initial,
               style: const TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
+                color: AppTheme.brandRed,
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
               ),
             ),
           ),
@@ -359,23 +341,24 @@ class _TeacherAssignActivityScreenState
               children: [
                 Text(
                   widget.studentName,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
+                  style: TextStyle(
+                    color: colors.onSurface,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Level ${widget.studentLevel}',
-                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                const SizedBox(height: 5),
+                AppStatusBadge(
+                  label: 'Level ${widget.studentLevel}',
+                  color: AppTheme.info,
                 ),
               ],
             ),
           ),
           IconButton(
+            tooltip: 'Refresh statuses',
             onPressed: isSaving ? null : _loadActivityStatuses,
-            icon: const Icon(Icons.refresh, color: Colors.white70),
+            icon: const Icon(Icons.refresh),
           ),
         ],
       ),
@@ -388,7 +371,7 @@ class _TeacherAssignActivityScreenState
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: categories.length,
-        separatorBuilder: (context, index) => const SizedBox(width: 10),
+        separatorBuilder: (context, index) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           final category = categories[index];
           final bool isSelected = selectedCategory == category;
@@ -404,15 +387,6 @@ class _TeacherAssignActivityScreenState
                       selectedActivityId = null;
                     });
                   },
-            selectedColor: const Color(0xFF6E59A5),
-            backgroundColor: const Color(0xFF1E1E1E),
-            side: BorderSide(
-              color: isSelected ? const Color(0xFFD3E4FD) : Colors.white24,
-            ),
-            labelStyle: TextStyle(
-              color: isSelected ? Colors.white : Colors.white70,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            ),
           );
         },
       ),
@@ -420,153 +394,114 @@ class _TeacherAssignActivityScreenState
   }
 
   Widget _buildActivityCard(Map<String, String> activity) {
+    final colors = Theme.of(context).colorScheme;
     final activityId = activity['id'] ?? '';
     final isSelected = selectedActivityId == activityId;
     final activityType = activity['type'] ?? '';
     final status = activityStatuses[activityId] ?? 'Not Assigned';
     final canAssign = _canAssignActivity(activityId);
     final statusColor = _getStatusColor(status, activityType);
+    final cardColor = !canAssign || isSelected
+        ? statusColor.withValues(alpha: 0.08)
+        : null;
 
-    return Card(
-      color: !canAssign
-          ? statusColor.withValues(alpha: 0.12)
-          : isSelected
-          ? const Color(0xFF6E59A5).withValues(alpha: 0.28)
-          : const Color(0xFF1E1E1E),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-        side: BorderSide(
-          color: !canAssign
-              ? statusColor
-              : isSelected
-              ? const Color(0xFFD3E4FD)
-              : Colors.white10,
-          width: isSelected || !canAssign ? 1.4 : 1,
-        ),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: isSaving || !canAssign
-            ? null
-            : () {
-                setState(() {
-                  selectedActivityId = activityId;
-                });
-              },
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Row(
-            children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.16),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(
-                  _getStatusIcon(status, activityType),
+    return AppPanel(
+      margin: const EdgeInsets.only(bottom: 10),
+      color: cardColor,
+      padding: EdgeInsets.zero,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppTheme.radius),
+          onTap: isSaving || !canAssign
+              ? null
+              : () {
+                  setState(() {
+                    selectedActivityId = activityId;
+                  });
+                },
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                AppIconBox(
+                  icon: _getStatusIcon(status, activityType),
                   color: statusColor,
-                  size: 28,
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      activity['title'] ?? '',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
+                const SizedBox(width: 13),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        activity['title'] ?? '',
+                        style: TextStyle(
+                          color: colors.onSurface,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      activity['description'] ?? '',
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                        height: 1.3,
+                      const SizedBox(height: 5),
+                      Text(
+                        activity['description'] ?? '',
+                        style: TextStyle(
+                          color: colors.onSurfaceVariant,
+                          fontSize: 13,
+                          height: 1.3,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        _smallTag(
-                          text: activityType,
-                          color: _getCategoryColor(activityType),
-                        ),
-                        _smallTag(
-                          text: 'Level ${activity['level']}',
-                          color: const Color(0xFFD3E4FD),
-                        ),
-                        _smallTag(
-                          text: _getStatusLabel(status),
-                          color: status == 'Not Assigned'
-                              ? Colors.white54
-                              : statusColor,
-                        ),
-                      ],
-                    ),
-                  ],
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          AppStatusBadge(
+                            label: activityType,
+                            color: _getCategoryColor(activityType),
+                          ),
+                          AppStatusBadge(
+                            label: 'Level ${activity['level']}',
+                            color: AppTheme.info,
+                          ),
+                          AppStatusBadge(
+                            label: _getStatusLabel(status),
+                            color: status == 'Not Assigned'
+                                ? colors.onSurfaceVariant
+                                : statusColor,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Icon(
-                !canAssign
-                    ? _getStatusIcon(status, activityType)
-                    : isSelected
-                    ? Icons.radio_button_checked
-                    : Icons.radio_button_unchecked,
-                color: !canAssign
-                    ? statusColor
-                    : isSelected
-                    ? const Color(0xFFD3E4FD)
-                    : Colors.white38,
-              ),
-            ],
+                const SizedBox(width: 10),
+                Icon(
+                  !canAssign
+                      ? _getStatusIcon(status, activityType)
+                      : isSelected
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_unchecked,
+                  color: !canAssign
+                      ? statusColor
+                      : isSelected
+                      ? statusColor
+                      : colors.onSurfaceVariant,
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _smallTag({required String text, required Color color}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.45)),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: color,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-
   Widget _buildEmptyCategoryCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white12),
-      ),
+    final colors = Theme.of(context).colorScheme;
+
+    return AppPanel(
       child: Text(
         'No $selectedCategory activities available yet.',
-        style: const TextStyle(color: Colors.white70, fontSize: 15),
+        style: TextStyle(color: colors.onSurfaceVariant, fontSize: 14),
       ),
     );
   }
@@ -582,18 +517,13 @@ class _TeacherAssignActivityScreenState
     final activitiesToShow = filteredActivities;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF121212),
-        elevation: 0,
-        title: const Text('Assign Activities'),
-      ),
+      appBar: AppBar(title: const Text('Assign Activities')),
       bottomNavigationBar: SafeArea(
         child: Container(
           padding: const EdgeInsets.all(16),
-          decoration: const BoxDecoration(
-            color: Color(0xFF121212),
-            border: Border(top: BorderSide(color: Colors.white10)),
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            border: Border(top: BorderSide(color: appBorderColor(context))),
           ),
           child: ElevatedButton.icon(
             onPressed: isSaving || isLoadingStatuses ? null : _assignActivity,
@@ -606,7 +536,7 @@ class _TeacherAssignActivityScreenState
                       color: Colors.white,
                     ),
                   )
-                : const Icon(Icons.add_task),
+                : const Icon(Icons.add_task_outlined),
             label: Text(
               isLoadingStatuses
                   ? 'Loading...'
@@ -616,74 +546,38 @@ class _TeacherAssignActivityScreenState
                   ? 'Select an Activity'
                   : 'Assign ${selectedActivity['title']}',
             ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6E59A5),
-              foregroundColor: Colors.white,
-              disabledBackgroundColor: const Color(
-                0xFF6E59A5,
-              ).withValues(alpha: 0.45),
-              disabledForegroundColor: Colors.white70,
-              padding: const EdgeInsets.symmetric(vertical: 15),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
           ),
         ),
       ),
       body: RefreshIndicator(
         onRefresh: _loadActivityStatuses,
-        color: const Color(0xFF6E59A5),
+        color: AppTheme.brandRed,
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            const Text(
-              'Assign Activities',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Choose a category and assign one or more activities to this student.',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 15,
-                height: 1.4,
-              ),
+            const AppSectionHeader(
+              title: 'Assign Activities',
+              subtitle:
+                  'Choose a category and assign an activity to this student.',
             ),
             const SizedBox(height: 20),
             _buildStudentInfoBox(),
-            const SizedBox(height: 24),
-            const Text(
-              'Category',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 19,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            const SizedBox(height: 22),
+            const AppSectionHeader(title: 'Category'),
             const SizedBox(height: 12),
             _buildCategoryFilter(),
-            const SizedBox(height: 24),
-            Text(
-              selectedCategory == 'All'
+            const SizedBox(height: 22),
+            AppSectionHeader(
+              title: selectedCategory == 'All'
                   ? 'Available Activities'
                   : '$selectedCategory Activities',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 19,
-                fontWeight: FontWeight.bold,
-              ),
             ),
             const SizedBox(height: 12),
             if (isLoadingStatuses)
               const Center(
                 child: Padding(
                   padding: EdgeInsets.all(24),
-                  child: CircularProgressIndicator(color: Color(0xFF6E59A5)),
+                  child: CircularProgressIndicator(),
                 ),
               )
             else if (activitiesToShow.isEmpty)

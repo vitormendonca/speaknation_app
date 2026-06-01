@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../theme/app_theme.dart';
+import '../../theme/theme_controller.dart';
+import '../../widgets/app_ui.dart';
 import 'teacher_profile_screen.dart';
 import 'teacher_students_screen.dart';
 
@@ -8,109 +11,30 @@ class TeacherHomeScreen extends StatelessWidget {
 
   void _showComingSoon(BuildContext context, String featureName) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$featureName will be available soon.'),
-        backgroundColor: Colors.blueGrey,
-        behavior: SnackBarBehavior.floating,
-      ),
+      SnackBar(content: Text('$featureName will be available soon.')),
     );
   }
 
   void _openScreen(BuildContext context, Widget screen) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => screen,
-      ),
-    );
-  }
-
-  Widget _buildDashboardCard({
-    required BuildContext context,
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return Card(
-      color: const Color(0xFF1E1E1E),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Row(
-            children: [
-              Container(
-                width: 54,
-                height: 54,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF6E59A5).withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(
-                  icon,
-                  color: const Color(0xFFD3E4FD),
-                  size: 30,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                        height: 1.3,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(
-                Icons.chevron_right,
-                color: Colors.white54,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF121212),
-        foregroundColor: Colors.white,
-        elevation: 0,
         title: const Text('Teacher Dashboard'),
         actions: [
+          IconButton(
+            tooltip: 'Toggle theme',
+            icon: Icon(ThemeController.iconFor(context)),
+            onPressed: () => ThemeController.toggle(context),
+          ),
           IconButton(
             tooltip: 'Teacher Profile',
             icon: const Icon(Icons.person_outline),
             onPressed: () {
-              _openScreen(
-                context,
-                const TeacherProfileScreen(),
-              );
+              _openScreen(context, const TeacherProfileScreen());
             },
           ),
         ],
@@ -118,59 +42,40 @@ class TeacherHomeScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          const Text(
-            'Welcome, Teacher',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 26,
-              fontWeight: FontWeight.bold,
-            ),
+          const AppSectionHeader(
+            title: 'Welcome, Teacher',
+            subtitle:
+                'Manage your students, classes, activities and progress from here.',
           ),
-          const SizedBox(height: 8),
-          const Text(
-            'Manage your students, classes, activities and progress from here.',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 15,
-              height: 1.4,
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          _buildDashboardCard(
-            context: context,
-            icon: Icons.person,
+          const SizedBox(height: 22),
+          AppActionTile(
+            icon: Icons.person_outline,
+            color: AppTheme.brandRed,
             title: 'Students',
             subtitle:
                 'View students, assign activities and check individual progress.',
             onTap: () {
-              _openScreen(
-                context,
-                const TeacherStudentsScreen(),
-              );
+              _openScreen(context, const TeacherStudentsScreen());
             },
           ),
-
-          _buildDashboardCard(
-            context: context,
-            icon: Icons.groups,
+          AppActionTile(
+            icon: Icons.groups_outlined,
+            color: AppTheme.info,
             title: 'Classes',
             subtitle: 'Manage groups, class schedules and class activities.',
             onTap: () => _showComingSoon(context, 'Classes'),
           ),
-
-          _buildDashboardCard(
-            context: context,
-            icon: Icons.assignment,
+          AppActionTile(
+            icon: Icons.assignment_outlined,
+            color: AppTheme.warning,
             title: 'Activities',
             subtitle:
                 'View available homework, listening and vocabulary activities.',
             onTap: () => _showComingSoon(context, 'Activities'),
           ),
-
-          _buildDashboardCard(
-            context: context,
-            icon: Icons.bar_chart,
+          AppActionTile(
+            icon: Icons.query_stats_outlined,
+            color: AppTheme.success,
             title: 'Progress',
             subtitle: 'Track completed activities and student development.',
             onTap: () => _showComingSoon(context, 'Progress'),
