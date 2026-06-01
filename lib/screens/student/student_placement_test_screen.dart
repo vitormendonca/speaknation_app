@@ -104,7 +104,7 @@ class _StudentPlacementTestScreenState
     final colors = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: Text('${widget.level} Placement Check')),
+      appBar: AppBar(title: Text('${widget.level} Placement Test')),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -133,7 +133,7 @@ class _StudentPlacementTestScreenState
                     ? 'Done'
                     : isSubmitted
                     ? 'Try Again'
-                    : 'Submit Placement Check',
+                    : 'Submit Placement Test',
               ),
             ),
           ),
@@ -179,7 +179,7 @@ class _StudentPlacementTestScreenState
           ),
           const SizedBox(height: 18),
           Text(
-            '${widget.level} Placement Check',
+            '${widget.level} Placement Test',
             style: TextStyle(
               color: colors.onSurface,
               fontSize: 27,

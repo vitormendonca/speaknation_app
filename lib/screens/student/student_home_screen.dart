@@ -248,10 +248,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
           children: [
             _todayPanel(context),
-            const SizedBox(height: 14),
-            _continueRoadCard(context),
-            const SizedBox(height: 12),
-            _teacherGuidancePanel(context),
             const SizedBox(height: 18),
             _skillProgressGrid(context),
           ],
@@ -364,7 +360,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
               _compactAction(
                 context: context,
                 icon: Icons.workspace_premium_outlined,
-                label: 'Placement Task',
+                label: 'Placement Test',
                 onTap: () =>
                     openScreen(context, const StudentLevelTestsScreen()),
               ),
@@ -654,9 +650,13 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
       children: [
         _sectionHeader(
           context: context,
-          title: 'A1 Skill Progress',
-          subtitle: 'Tap a skill to open its path.',
+          title: 'A1 Progress',
+          subtitle: 'Continue your road or focus on one skill.',
         ),
+        const SizedBox(height: 12),
+        _continueRoadCard(context),
+        const SizedBox(height: 10),
+        _teacherGuidancePanel(context),
         const SizedBox(height: 12),
         LayoutBuilder(
           builder: (context, constraints) {

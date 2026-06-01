@@ -202,7 +202,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
     });
   }
 
-  Future<void> openPlacementTask() async {
+  Future<void> openPlacementTest() async {
     await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const StudentLevelTestsScreen()),
@@ -513,21 +513,61 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
           _levelBadge(context, studentLevel),
           const SizedBox(height: 12),
           Text(
-            'Use Placement Task when you already know part of the level and want to validate your starting point.',
+            'Your level updates as you complete the road and validate progress.',
             style: TextStyle(
               color: colors.onSurfaceVariant,
               fontSize: 14,
               height: 1.4,
             ),
           ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton.icon(
-              onPressed: openPlacementTask,
-              icon: const Icon(Icons.workspace_premium_outlined),
-              label: const Text('Open Placement Task'),
+          const SizedBox(height: 14),
+          Divider(color: appBorderColor(context)),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(AppTheme.radius),
+              onTap: openPlacementTest,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.workspace_premium_outlined,
+                      color: colors.onSurfaceVariant,
+                      size: 22,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Placement Test',
+                            style: TextStyle(
+                              color: colors.onSurface,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Validate your starting point.',
+                            style: TextStyle(
+                              color: colors.onSurfaceVariant,
+                              fontSize: 12,
+                              height: 1.25,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: colors.onSurfaceVariant,
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ],

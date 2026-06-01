@@ -53,7 +53,7 @@ class _StudentLevelTestsScreenState extends State<StudentLevelTestsScreen> {
     final colors = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Placement Task')),
+      appBar: AppBar(title: const Text('Placement Test')),
       body: RefreshIndicator(
         onRefresh: _loadValidatedLevels,
         color: AppTheme.brandRed,
@@ -120,7 +120,7 @@ class _StudentLevelTestsScreenState extends State<StudentLevelTestsScreen> {
               _levelCard(
                 context: context,
                 level: 'A1',
-                title: 'A1 Placement Task',
+                title: 'A1 Placement Test',
                 description:
                     'Sample test with integrated A1 questions. Score 85% or higher '
                     'to validate this level and continue from the next path.',
@@ -130,7 +130,7 @@ class _StudentLevelTestsScreenState extends State<StudentLevelTestsScreen> {
               _levelCard(
                 context: context,
                 level: 'A2',
-                title: 'A2 Placement Task',
+                title: 'A2 Placement Test',
                 description:
                     'Planned for the next level path. This will allow students '
                     'to start at A2 when they already know A1.',
@@ -139,7 +139,7 @@ class _StudentLevelTestsScreenState extends State<StudentLevelTestsScreen> {
               _levelCard(
                 context: context,
                 level: 'B1',
-                title: 'B1 Placement Task',
+                title: 'B1 Placement Test',
                 description:
                     'Planned for intermediate students who should not start '
                     'from beginner content.',
