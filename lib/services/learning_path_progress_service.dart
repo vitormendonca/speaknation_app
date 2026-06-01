@@ -190,11 +190,47 @@ class LearningPathProgressService {
   getAllSkillProgress() async {
     final completed = await getCompletedStepIds();
 
+    return getAllSkillProgressFromCompleted(completed);
+  }
+
+  static Future<Map<String, LearningPathSkillProgress>>
+  getAllSkillProgressForStudent({
+    required String studentId,
+    required String studentName,
+  }) async {
+    final completed = await getCompletedStepIdsForStudent(
+      studentId: studentId,
+      studentName: studentName,
+    );
+
+    return getAllSkillProgressFromCompleted(completed);
+  }
+
+  static Future<Set<String>> getCompletedStepIdsForStudent({
+    required String studentId,
+    required String studentName,
+  }) async {
+    final remoteCompleted = await _getRemoteCompletedStepIdsForStudent(
+      studentId,
+    );
+
+    if (remoteCompleted != null) {
+      return remoteCompleted;
+    }
+
+    return _getLocalCompletedStepIdsForIdentity(
+      studentId: studentId,
+      studentName: studentName,
+    );
+  }
+
+  static Map<String, LearningPathSkillProgress>
+  getAllSkillProgressFromCompleted(Set<String> completedStepIds) {
     return {
       for (final skill in learningSkillDefinitions)
         skill.id: getSkillProgressFromCompleted(
           skillId: skill.id,
-          completedStepIds: completed,
+          completedStepIds: completedStepIds,
         ),
     };
   }
@@ -240,25 +276,21 @@ class LearningPathProgressService {
   static Future<String> _completedStepsKey(SharedPreferences prefs) async {
     final studentId = prefs.getString('currentStudentId');
     final studentName = prefs.getString('currentStudentName');
-    final studentKey = (studentId?.isNotEmpty ?? false)
-        ? studentId!
-        : (studentName?.isNotEmpty ?? false)
-        ? studentName!
-        : 'guest';
 
-    return '${_completedStepsPrefix}_${_normalizeKey(studentKey)}';
+    return _completedStepsKeyForIdentity(
+      studentId: studentId,
+      studentName: studentName,
+    );
   }
 
   static Future<String> _validatedLevelsKey(SharedPreferences prefs) async {
     final studentId = prefs.getString('currentStudentId');
     final studentName = prefs.getString('currentStudentName');
-    final studentKey = (studentId?.isNotEmpty ?? false)
-        ? studentId!
-        : (studentName?.isNotEmpty ?? false)
-        ? studentName!
-        : 'guest';
 
-    return '${_validatedLevelsPrefix}_${_normalizeKey(studentKey)}';
+    return _validatedLevelsKeyForIdentity(
+      studentId: studentId,
+      studentName: studentName,
+    );
   }
 
   static String _normalizeKey(String value) {
@@ -277,6 +309,54 @@ class LearningPathProgressService {
     final key = await _validatedLevelsKey(prefs);
 
     await prefs.setString(key, jsonEncode(levels.toList()));
+  }
+
+  static Future<Set<String>> _getLocalCompletedStepIdsForIdentity({
+    required String studentId,
+    required String studentName,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = _completedStepsKeyForIdentity(
+      studentId: studentId,
+      studentName: studentName,
+    );
+    final jsonString = prefs.getString(key);
+
+    if (jsonString == null || jsonString.isEmpty) {
+      return {};
+    }
+
+    final decoded = jsonDecode(jsonString);
+
+    if (decoded is! List) {
+      return {};
+    }
+
+    return decoded.map((item) => item.toString()).toSet();
+  }
+
+  static String _completedStepsKeyForIdentity({
+    String? studentId,
+    String? studentName,
+  }) {
+    return '${_completedStepsPrefix}_${_studentStorageKey(studentId: studentId, studentName: studentName)}';
+  }
+
+  static String _validatedLevelsKeyForIdentity({
+    String? studentId,
+    String? studentName,
+  }) {
+    return '${_validatedLevelsPrefix}_${_studentStorageKey(studentId: studentId, studentName: studentName)}';
+  }
+
+  static String _studentStorageKey({String? studentId, String? studentName}) {
+    final studentKey = (studentId?.isNotEmpty ?? false)
+        ? studentId!
+        : (studentName?.isNotEmpty ?? false)
+        ? studentName!
+        : 'guest';
+
+    return _normalizeKey(studentKey);
   }
 
   static Future<String?> _remoteStudentId() async {
@@ -317,6 +397,32 @@ class LearningPathProgressService {
           .toSet();
     } catch (error) {
       debugPrint('Remote learning path progress unavailable: $error');
+      return null;
+    }
+  }
+
+  static Future<Set<String>?> _getRemoteCompletedStepIdsForStudent(
+    String studentId,
+  ) async {
+    final client = SupabaseBootstrap.client;
+    final user = client?.auth.currentUser;
+
+    if (client == null || user == null || studentId.isEmpty) {
+      return null;
+    }
+
+    try {
+      final data = await client
+          .from('student_step_progress')
+          .select('learning_step_id')
+          .eq('student_id', studentId);
+
+      return _rowsFromResponse(data)
+          .map((row) => row['learning_step_id']?.toString() ?? '')
+          .where((id) => id.isNotEmpty)
+          .toSet();
+    } catch (error) {
+      debugPrint('Remote student learning path progress unavailable: $error');
       return null;
     }
   }

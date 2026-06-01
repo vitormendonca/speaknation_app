@@ -4,6 +4,7 @@ import '../../models/assigned_activity.dart';
 import '../../services/assignment_service.dart';
 import 'teacher_assign_activity_screen.dart';
 import 'teacher_student_assigned_activities_screen.dart';
+import 'teacher_student_progress_screen.dart';
 
 class TeacherStudentDetailScreen extends StatefulWidget {
   final String studentId;
@@ -65,16 +66,6 @@ class _TeacherStudentDetailScreenState
   int get reviewNeededCount => assignedActivities
       .where((activity) => activity.status == 'Review Needed')
       .length;
-
-  void _showComingSoon(BuildContext context, String featureName) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$featureName will be connected soon.'),
-        backgroundColor: Colors.blueGrey,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
 
   Widget _buildActionButton({
     required BuildContext context,
@@ -319,6 +310,19 @@ class _TeacherStudentDetailScreenState
     await _loadAssignedActivities();
   }
 
+  void _openStudentProgressScreen(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TeacherStudentProgressScreen(
+          studentId: widget.studentId,
+          studentName: widget.studentName,
+          studentLevel: widget.studentLevel,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -393,7 +397,7 @@ class _TeacherStudentDetailScreenState
             icon: Icons.bar_chart,
             title: 'Progress',
             subtitle: 'Check completed activities and student performance.',
-            onTap: () => _showComingSoon(context, 'Progress'),
+            onTap: () => _openStudentProgressScreen(context),
           ),
         ],
       ),
