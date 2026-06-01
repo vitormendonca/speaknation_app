@@ -26,6 +26,9 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   int totalCompleted = 0;
   int totalReviewNeeded = 0;
 
+  bool isLoadingProgress = true;
+  bool isTeacherGuidanceExpanded = false;
+
   final Map<String, int> completedBySkill = {
     'listening': 0,
     'speaking': 0,
@@ -49,8 +52,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     'vocabulary': false,
     'homework': false,
   };
-
-  bool isLoadingProgress = true;
 
   @override
   void initState() {
@@ -77,25 +78,26 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
 
     if (!mounted) return;
 
+    final pending = assignments
+        .where((assignment) => assignment.status == 'Pending')
+        .length;
+    final completed = assignments
+        .where(
+          (assignment) =>
+              assignment.status == 'Completed' ||
+              assignment.status == 'Reviewed',
+        )
+        .length;
+    final reviewNeeded = assignments
+        .where((assignment) => assignment.status == 'Review Needed')
+        .length;
+
     setState(() {
       currentStudentName = savedStudentName;
       currentStudentLevel = savedStudentLevel;
-
-      totalPending = assignments
-          .where((assignment) => assignment.status == 'Pending')
-          .length;
-
-      totalCompleted = assignments
-          .where(
-            (assignment) =>
-                assignment.status == 'Completed' ||
-                assignment.status == 'Reviewed',
-          )
-          .length;
-
-      totalReviewNeeded = assignments
-          .where((assignment) => assignment.status == 'Review Needed')
-          .length;
+      totalPending = pending;
+      totalCompleted = completed;
+      totalReviewNeeded = reviewNeeded;
 
       for (final skill in completedBySkill.keys) {
         final skillProgress = pathProgress[skill];
@@ -105,6 +107,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         finalTestBySkill[skill] = skillProgress?.finalTestCompleted ?? false;
       }
 
+      isTeacherGuidanceExpanded = reviewNeeded > 0;
       isLoadingProgress = false;
     });
   }
@@ -134,6 +137,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     return completedBySkill.values.fold(0, (sum, value) => sum + value);
   }
 
+  double get pathProgress {
+    return (pathCompleted / 60).clamp(0.0, 1.0).toDouble();
+  }
+
   String get firstName {
     if (currentStudentName.trim().isEmpty) {
       return 'there';
@@ -142,10 +149,46 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     return currentStudentName.trim().split(' ').first;
   }
 
+  String get nextSkillId {
+    const skillOrder = [
+      'listening',
+      'speaking',
+      'reading',
+      'vocabulary',
+      'homework',
+    ];
+
+    for (final skill in skillOrder) {
+      if ((completedBySkill[skill] ?? 0) < 12) {
+        return skill;
+      }
+    }
+
+    return 'listening';
+  }
+
+  String get nextSkillTitle {
+    switch (nextSkillId) {
+      case 'speaking':
+        return 'Speaking';
+      case 'reading':
+        return 'Reading';
+      case 'vocabulary':
+        return 'Vocabulary';
+      case 'homework':
+        return 'Grammar';
+      case 'listening':
+      default:
+        return 'Listening';
+    }
+  }
+
+  bool get hasTeacherAttention {
+    return totalPending > 0 || totalReviewNeeded > 0;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('SpeakNation'),
@@ -170,144 +213,165 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
           children: [
-            _heroPanel(context),
+            _todayPanel(context),
+            const SizedBox(height: 14),
+            _quickActionGrid(context),
+            const SizedBox(height: 14),
+            _teacherGuidancePanel(context),
             const SizedBox(height: 18),
-            _metricGrid(context),
-            const SizedBox(height: 22),
-            _levelCheckPanel(context),
-            const SizedBox(height: 22),
-            _assignedWorkPanel(context),
-            const SizedBox(height: 22),
-            _learningPathPanel(context),
-            const SizedBox(height: 10),
-            Text(
-              'Your teacher guides the same learning path you can study on your own.',
-              style: TextStyle(color: colors.onSurfaceVariant, fontSize: 12),
-            ),
+            _skillProgressGrid(context),
           ],
         ),
       ),
     );
   }
 
-  Widget _heroPanel(BuildContext context) {
+  Widget _todayPanel(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final hasReview = totalReviewNeeded > 0;
     final hasPending = totalPending > 0;
 
-    final String actionTitle;
     final String actionLabel;
     final IconData actionIcon;
     final VoidCallback action;
 
     if (hasReview) {
-      actionTitle = 'Review needs attention';
-      actionLabel = 'Open Review';
+      actionLabel = 'Review';
       actionIcon = Icons.rate_review_outlined;
       action = () => openScreen(context, const StudentAssignmentsScreen());
     } else if (hasPending) {
-      actionTitle = 'Keep today moving';
-      actionLabel = 'Open Assignments';
+      actionLabel = 'Guided';
       actionIcon = Icons.assignment_outlined;
       action = () => openScreen(context, const StudentAssignmentsScreen());
     } else {
-      actionTitle = 'Continue your A1 path';
-      actionLabel = 'Continue Learning';
+      actionLabel = 'Continue';
       actionIcon = Icons.play_arrow_rounded;
-      action = () => openScreen(
-        context,
-        const StudentLearningPathScreen(skillId: 'listening'),
-      );
+      action = () =>
+          openScreen(context, StudentLearningPathScreen(skillId: nextSkillId));
     }
 
     return _panel(
       context: context,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: AppTheme.brandRed.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.school_outlined,
-                  color: AppTheme.brandRed,
-                  size: 30,
+              InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: () => openScreen(context, const StudentProfileScreen()),
+                child: Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: AppTheme.brandRed.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.person_outline,
+                    color: AppTheme.brandRed,
+                    size: 29,
+                  ),
                 ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 13),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Hi, $firstName',
-                      style: TextStyle(
-                        color: colors.onSurface,
-                        fontSize: 25,
-                        fontWeight: FontWeight.w800,
-                      ),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () =>
+                      openScreen(context, const StudentProfileScreen()),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Hi, $firstName',
+                          style: TextStyle(
+                            color: colors.onSurface,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          'Next: $nextSkillTitle - Level $currentStudentLevel',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: colors.onSurfaceVariant,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Level $currentStudentLevel path',
-                      style: TextStyle(
-                        color: colors.onSurfaceVariant,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Open profile',
+                onPressed: () =>
+                    openScreen(context, const StudentProfileScreen()),
+                icon: Icon(
+                  Icons.chevron_right_rounded,
+                  color: colors.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(width: 4),
+              SizedBox(
+                height: 42,
+                child: ElevatedButton.icon(
+                  onPressed: action,
+                  icon: Icon(actionIcon, size: 19),
+                  label: Text(actionLabel),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 18),
-          Text(
-            actionTitle,
-            style: TextStyle(
-              color: colors.onSurface,
-              fontSize: 19,
-              fontWeight: FontWeight.w800,
+          const SizedBox(height: 16),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(99),
+            child: LinearProgressIndicator(
+              value: pathProgress,
+              minHeight: 9,
+              color: AppTheme.brandRed,
+              backgroundColor: colors.surfaceContainerHighest,
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            'Build real progress across Listening, Speaking, Reading, '
-            'Vocabulary and Grammar.',
-            style: TextStyle(
-              color: colors.onSurfaceVariant,
-              fontSize: 14,
-              height: 1.4,
-            ),
-          ),
-          const SizedBox(height: 18),
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton.icon(
-              onPressed: action,
-              icon: Icon(actionIcon),
-              label: Text(actionLabel),
-            ),
+          const SizedBox(height: 9),
+          Row(
+            children: [
+              Text(
+                '$pathCompleted/60 lessons',
+                style: TextStyle(
+                  color: colors.onSurface,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '${(pathProgress * 100).round()}% path',
+                style: TextStyle(
+                  color: colors.onSurfaceVariant,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _metricGrid(BuildContext context) {
+  Widget _quickActionGrid(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final columns = constraints.maxWidth > 700 ? 4 : 2;
-        final spacing = 12.0;
+        final spacing = 10.0;
         final itemWidth =
             (constraints.maxWidth - spacing * (columns - 1)) / columns;
 
@@ -317,42 +381,70 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           children: [
             SizedBox(
               width: itemWidth,
-              child: _metricCard(
+              child: _quickActionCard(
                 context: context,
                 icon: Icons.route_outlined,
-                label: 'Path',
+                title: 'Path',
                 value: '$pathCompleted/60',
                 color: AppTheme.info,
+                onTap: () => openScreen(
+                  context,
+                  StudentLearningPathScreen(skillId: nextSkillId),
+                ),
               ),
             ),
             SizedBox(
               width: itemWidth,
-              child: _metricCard(
+              child: _quickActionCard(
                 context: context,
                 icon: Icons.assignment_outlined,
-                label: 'Guided',
+                title: 'Guidance',
                 value: totalAssigned.toString(),
-                color: AppTheme.brandRed,
+                color: hasTeacherAttention
+                    ? AppTheme.warning
+                    : AppTheme.brandRed,
+                highlighted: hasTeacherAttention,
+                onTap: () {
+                  setState(() {
+                    isTeacherGuidanceExpanded = !isTeacherGuidanceExpanded;
+                  });
+                },
               ),
             ),
             SizedBox(
               width: itemWidth,
-              child: _metricCard(
+              child: _quickActionCard(
                 context: context,
                 icon: Icons.check_circle_outline,
-                label: 'Lessons Done',
+                title: 'Done',
                 value: pathCompleted.toString(),
                 color: AppTheme.success,
+                onTap: () => openScreen(
+                  context,
+                  StudentLearningPathScreen(skillId: nextSkillId),
+                ),
               ),
             ),
             SizedBox(
               width: itemWidth,
-              child: _metricCard(
+              child: _quickActionCard(
                 context: context,
-                icon: Icons.rate_review_outlined,
-                label: 'To Review',
-                value: totalReviewNeeded.toString(),
-                color: AppTheme.warning,
+                icon: totalReviewNeeded > 0
+                    ? Icons.rate_review_outlined
+                    : Icons.workspace_premium_outlined,
+                title: totalReviewNeeded > 0 ? 'Review' : 'Level Test',
+                value: totalReviewNeeded > 0
+                    ? totalReviewNeeded.toString()
+                    : currentStudentLevel,
+                color: totalReviewNeeded > 0 ? AppTheme.warning : AppTheme.info,
+                highlighted: totalReviewNeeded > 0,
+                onTap: () {
+                  if (totalReviewNeeded > 0) {
+                    openScreen(context, const StudentAssignmentsScreen());
+                  } else {
+                    openScreen(context, const StudentLevelTestsScreen());
+                  }
+                },
               ),
             ),
           ],
@@ -361,274 +453,119 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     );
   }
 
-  Widget _metricCard({
+  Widget _quickActionCard({
     required BuildContext context,
     required IconData icon,
-    required String label,
+    required String title,
     required String value,
     required Color color,
-  }) {
-    final colors = Theme.of(context).colorScheme;
-
-    return _panel(
-      context: context,
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: TextStyle(
-              color: colors.onSurface,
-              fontSize: 23,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: TextStyle(
-              color: colors.onSurfaceVariant,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _levelCheckPanel(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-
-    return _panel(
-      context: context,
-      padding: const EdgeInsets.all(18),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: AppTheme.brandRed.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              Icons.workspace_premium_outlined,
-              color: AppTheme.brandRed,
-              size: 28,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Already know some English?',
-                  style: TextStyle(
-                    color: colors.onSurface,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Take a level check to validate what you know and start '
-                  'from the right point.',
-                  style: TextStyle(
-                    color: colors.onSurfaceVariant,
-                    fontSize: 13,
-                    height: 1.3,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          IconButton(
-            tooltip: 'Open level checks',
-            onPressed: () =>
-                openScreen(context, const StudentLevelTestsScreen()),
-            icon: const Icon(Icons.arrow_forward_ios_rounded),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _assignedWorkPanel(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-
-    return _panel(
-      context: context,
-      padding: const EdgeInsets.all(18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _sectionHeader(
-            context: context,
-            title: 'Teacher Guidance',
-            subtitle: 'Recommendations from your teacher for this same path.',
-            actionLabel: 'Open',
-            onAction: () =>
-                openScreen(context, const StudentAssignmentsScreen()),
-          ),
-          const SizedBox(height: 16),
-          if (isLoadingProgress)
-            LinearProgressIndicator(
-              color: AppTheme.brandRed,
-              backgroundColor: colors.surfaceContainerHighest,
-            )
-          else ...[
-            _statusLine(
-              context: context,
-              icon: Icons.schedule_outlined,
-              label: 'Recommended',
-              value: totalPending,
-              color: AppTheme.warning,
-            ),
-            _statusLine(
-              context: context,
-              icon: Icons.check_circle_outline,
-              label: 'Completed with guidance',
-              value: totalCompleted,
-              color: AppTheme.success,
-            ),
-            _statusLine(
-              context: context,
-              icon: Icons.rate_review_outlined,
-              label: 'Needs teacher review',
-              value: totalReviewNeeded,
-              color: AppTheme.warning,
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _learningPathPanel(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _sectionHeader(
-          context: context,
-          title: 'A1 Learning Path',
-          subtitle: '12 lessons, review every 3, then a final test.',
-        ),
-        const SizedBox(height: 12),
-        _skillPathTile(
-          context: context,
-          title: 'Listening',
-          subtitle: 'Audio, dictation and comprehension.',
-          skill: 'listening',
-          icon: Icons.headphones_outlined,
-          color: AppTheme.info,
-          onTap: () => openScreen(
-            context,
-            const StudentLearningPathScreen(skillId: 'listening'),
-          ),
-        ),
-        _skillPathTile(
-          context: context,
-          title: 'Speaking',
-          subtitle: 'Guided recording and teacher review.',
-          skill: 'speaking',
-          icon: Icons.mic_none_outlined,
-          color: const Color(0xFF7B1FA2),
-          onTap: () => openScreen(
-            context,
-            const StudentLearningPathScreen(skillId: 'speaking'),
-          ),
-        ),
-        _skillPathTile(
-          context: context,
-          title: 'Reading',
-          subtitle: 'Short texts and guided comprehension.',
-          skill: 'reading',
-          icon: Icons.menu_book_outlined,
-          color: const Color(0xFF00897B),
-          onTap: () => openScreen(
-            context,
-            const StudentLearningPathScreen(skillId: 'reading'),
-          ),
-        ),
-        _skillPathTile(
-          context: context,
-          title: 'Vocabulary',
-          subtitle: 'Themes, review sets and final checks.',
-          skill: 'vocabulary',
-          icon: Icons.style_outlined,
-          color: AppTheme.brandRed,
-          onTap: () => openScreen(
-            context,
-            const StudentLearningPathScreen(skillId: 'vocabulary'),
-          ),
-        ),
-        _skillPathTile(
-          context: context,
-          title: 'Grammar & Practice',
-          subtitle: 'Homework, grammar and written practice.',
-          skill: 'homework',
-          icon: Icons.edit_note_outlined,
-          color: const Color(0xFF5E35B1),
-          onTap: () => openScreen(
-            context,
-            const StudentLearningPathScreen(skillId: 'homework'),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _skillPathTile({
-    required BuildContext context,
-    required String title,
-    required String subtitle,
-    required String skill,
-    required IconData icon,
-    required Color color,
     required VoidCallback onTap,
+    bool highlighted = false,
   }) {
     final colors = Theme.of(context).colorScheme;
-    final completed = completedBySkill[skill] ?? 0;
-    final completedReviews = reviewBySkill[skill] ?? 0;
-    final finalTestDone = finalTestBySkill[skill] ?? false;
-    final double progress = (completed / 12).clamp(0.0, 1.0).toDouble();
-    final reviewLabel = finalTestDone
-        ? 'Test passed'
-        : '$completedReviews/4 reviews';
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: Material(
-        color: Theme.of(context).cardColor,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         borderRadius: BorderRadius.circular(8),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(8),
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: _borderColor(context)),
+        onTap: onTap,
+        child: Container(
+          height: 86,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: highlighted
+                ? color.withValues(alpha: 0.11)
+                : Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: highlighted
+                  ? color.withValues(alpha: 0.7)
+                  : _borderColor(context),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: color, size: 24),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: colors.onSurface,
+                        fontSize: 21,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: colors.onSurfaceVariant,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _teacherGuidancePanel(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final highlightColor = totalReviewNeeded > 0
+        ? AppTheme.warning
+        : totalPending > 0
+        ? AppTheme.info
+        : colors.onSurfaceVariant;
+
+    return _panel(
+      context: context,
+      color: hasTeacherAttention
+          ? highlightColor.withValues(alpha: 0.07)
+          : Theme.of(context).cardColor,
+      padding: EdgeInsets.zero,
+      child: Column(
+        children: [
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () {
+                setState(() {
+                  isTeacherGuidanceExpanded = !isTeacherGuidanceExpanded;
+                });
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Row(
                   children: [
                     Container(
                       width: 42,
                       height: 42,
                       decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.12),
+                        color: highlightColor.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Icon(icon, color: color, size: 24),
+                      child: Icon(
+                        totalReviewNeeded > 0
+                            ? Icons.rate_review_outlined
+                            : Icons.assignment_outlined,
+                        color: highlightColor,
+                        size: 24,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -636,64 +573,255 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            title,
+                            'Teacher Guidance',
                             style: TextStyle(
                               color: colors.onSurface,
                               fontSize: 16,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
-                          const SizedBox(height: 3),
+                          const SizedBox(height: 4),
                           Text(
-                            subtitle,
+                            totalAssigned == 0
+                                ? 'No teacher recommendations yet.'
+                                : '$totalPending pending - $totalReviewNeeded review - $totalCompleted done',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               color: colors.onSurfaceVariant,
                               fontSize: 13,
-                              height: 1.25,
+                              height: 1.3,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     Icon(
-                      Icons.arrow_forward_ios_rounded,
+                      isTeacherGuidanceExpanded
+                          ? Icons.keyboard_arrow_up_rounded
+                          : Icons.keyboard_arrow_down_rounded,
                       color: colors.onSurfaceVariant,
-                      size: 16,
                     ),
                   ],
                 ),
-                const SizedBox(height: 14),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(99),
-                  child: LinearProgressIndicator(
-                    value: progress,
-                    minHeight: 8,
-                    color: color,
-                    backgroundColor: colors.surfaceContainerHighest,
+              ),
+            ),
+          ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
+            child: isTeacherGuidanceExpanded
+                ? Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                    child: Column(
+                      children: [
+                        Divider(color: _borderColor(context)),
+                        const SizedBox(height: 8),
+                        if (isLoadingProgress)
+                          LinearProgressIndicator(
+                            color: AppTheme.brandRed,
+                            backgroundColor: colors.surfaceContainerHighest,
+                          )
+                        else ...[
+                          _statusLine(
+                            context: context,
+                            icon: Icons.schedule_outlined,
+                            label: 'Recommended',
+                            value: totalPending,
+                            color: AppTheme.warning,
+                          ),
+                          _statusLine(
+                            context: context,
+                            icon: Icons.check_circle_outline,
+                            label: 'Completed with guidance',
+                            value: totalCompleted,
+                            color: AppTheme.success,
+                          ),
+                          _statusLine(
+                            context: context,
+                            icon: Icons.rate_review_outlined,
+                            label: 'Needs teacher review',
+                            value: totalReviewNeeded,
+                            color: AppTheme.warning,
+                          ),
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 44,
+                            child: OutlinedButton.icon(
+                              onPressed: () => openScreen(
+                                context,
+                                const StudentAssignmentsScreen(),
+                              ),
+                              icon: const Icon(Icons.open_in_new_rounded),
+                              label: const Text('Open Assignments'),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _skillProgressGrid(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionHeader(
+          context: context,
+          title: 'A1 Skill Progress',
+          subtitle: 'Tap a skill to open its path.',
+        ),
+        const SizedBox(height: 12),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final columns = constraints.maxWidth > 760 ? 5 : 2;
+            final spacing = 10.0;
+            final itemWidth =
+                (constraints.maxWidth - spacing * (columns - 1)) / columns;
+
+            return Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
+              children: [
+                SizedBox(
+                  width: itemWidth,
+                  child: _skillProgressCard(
+                    context: context,
+                    title: 'Listening',
+                    skill: 'listening',
+                    icon: Icons.headphones_outlined,
+                    color: AppTheme.info,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Text(
-                      '$completed/12 lessons',
-                      style: TextStyle(
-                        color: colors.onSurface,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const Spacer(),
-                    _smallBadge(
-                      context: context,
-                      label: reviewLabel,
-                      color: finalTestDone ? AppTheme.success : color,
-                    ),
-                  ],
+                SizedBox(
+                  width: itemWidth,
+                  child: _skillProgressCard(
+                    context: context,
+                    title: 'Speaking',
+                    skill: 'speaking',
+                    icon: Icons.mic_none_outlined,
+                    color: const Color(0xFF7B1FA2),
+                  ),
+                ),
+                SizedBox(
+                  width: itemWidth,
+                  child: _skillProgressCard(
+                    context: context,
+                    title: 'Reading',
+                    skill: 'reading',
+                    icon: Icons.menu_book_outlined,
+                    color: const Color(0xFF00897B),
+                  ),
+                ),
+                SizedBox(
+                  width: itemWidth,
+                  child: _skillProgressCard(
+                    context: context,
+                    title: 'Vocabulary',
+                    skill: 'vocabulary',
+                    icon: Icons.style_outlined,
+                    color: AppTheme.brandRed,
+                  ),
+                ),
+                SizedBox(
+                  width: itemWidth,
+                  child: _skillProgressCard(
+                    context: context,
+                    title: 'Grammar',
+                    skill: 'homework',
+                    icon: Icons.edit_note_outlined,
+                    color: const Color(0xFF5E35B1),
+                  ),
                 ),
               ],
-            ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _skillProgressCard({
+    required BuildContext context,
+    required String title,
+    required String skill,
+    required IconData icon,
+    required Color color,
+  }) {
+    final colors = Theme.of(context).colorScheme;
+    final completed = completedBySkill[skill] ?? 0;
+    final completedReviews = reviewBySkill[skill] ?? 0;
+    final finalTestDone = finalTestBySkill[skill] ?? false;
+    final progress = (completed / 12).clamp(0.0, 1.0).toDouble();
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () =>
+            openScreen(context, StudentLearningPathScreen(skillId: skill)),
+        child: Container(
+          height: 136,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: _borderColor(context)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(icon, color: color, size: 23),
+                  const Spacer(),
+                  Text(
+                    '$completed/12',
+                    style: TextStyle(
+                      color: colors.onSurface,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 11),
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: colors.onSurface,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 9),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(99),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 7,
+                  color: color,
+                  backgroundColor: colors.surfaceContainerHighest,
+                ),
+              ),
+              const Spacer(),
+              _smallBadge(
+                context: context,
+                label: finalTestDone
+                    ? 'Test passed'
+                    : '$completedReviews/4 reviews',
+                color: finalTestDone ? AppTheme.success : color,
+              ),
+            ],
           ),
         ),
       ),
@@ -704,42 +832,29 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     required BuildContext context,
     required String title,
     required String subtitle,
-    String? actionLabel,
-    VoidCallback? onAction,
   }) {
     final colors = Theme.of(context).colorScheme;
 
-    return Row(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  color: colors.onSurface,
-                  fontSize: 21,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  color: colors.onSurfaceVariant,
-                  fontSize: 13,
-                  height: 1.3,
-                ),
-              ),
-            ],
+        Text(
+          title,
+          style: TextStyle(
+            color: colors.onSurface,
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
           ),
         ),
-        if (actionLabel != null && onAction != null) ...[
-          const SizedBox(width: 10),
-          TextButton(onPressed: onAction, child: Text(actionLabel)),
-        ],
+        const SizedBox(height: 4),
+        Text(
+          subtitle,
+          style: TextStyle(
+            color: colors.onSurfaceVariant,
+            fontSize: 13,
+            height: 1.3,
+          ),
+        ),
       ],
     );
   }
@@ -785,13 +900,15 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(99),
       ),
       child: Text(
         label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: TextStyle(
           color: color,
           fontSize: 11,
@@ -805,12 +922,13 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     required BuildContext context,
     required Widget child,
     EdgeInsetsGeometry padding = const EdgeInsets.all(16),
+    Color? color,
   }) {
     return Container(
       width: double.infinity,
       padding: padding,
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        color: color ?? Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: _borderColor(context)),
       ),

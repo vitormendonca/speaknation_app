@@ -9,10 +9,7 @@ import 'student_learning_step_screen.dart';
 class StudentLearningPathScreen extends StatefulWidget {
   final String skillId;
 
-  const StudentLearningPathScreen({
-    super.key,
-    required this.skillId,
-  });
+  const StudentLearningPathScreen({super.key, required this.skillId});
 
   @override
   State<StudentLearningPathScreen> createState() =>
@@ -89,12 +86,8 @@ class _StudentLearningPathScreenState extends State<StudentLearningPathScreen> {
 
     if (skillDefinition == null) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('Learning Path'),
-        ),
-        body: const Center(
-          child: Text('Skill not found.'),
-        ),
+        appBar: AppBar(title: const Text('Learning Path')),
+        body: const Center(child: Text('Skill not found.')),
       );
     }
 
@@ -104,9 +97,7 @@ class _StudentLearningPathScreenState extends State<StudentLearningPathScreen> {
     );
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('${skillDefinition.title} Path'),
-      ),
+      appBar: AppBar(title: Text('${skillDefinition.title} Path')),
       body: RefreshIndicator(
         onRefresh: _loadProgress,
         color: AppTheme.brandRed,
@@ -126,10 +117,7 @@ class _StudentLearningPathScreenState extends State<StudentLearningPathScreen> {
             const SizedBox(height: 6),
             Text(
               '12 lessons, 4 reviews and one stronger final test.',
-              style: TextStyle(
-                color: colors.onSurfaceVariant,
-                fontSize: 14,
-              ),
+              style: TextStyle(color: colors.onSurfaceVariant, fontSize: 14),
             ),
             const SizedBox(height: 14),
             if (isLoading)
@@ -161,9 +149,7 @@ class _StudentLearningPathScreenState extends State<StudentLearningPathScreen> {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: colors.outlineVariant.withValues(alpha: 0.5),
-        ),
+        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -249,11 +235,28 @@ class _StudentLearningPathScreenState extends State<StudentLearningPathScreen> {
       step: step,
       completedStepIds: completedStepIds,
     );
+    final isReview = step.type == LearningPathStepType.review;
+    final isFinalTest = step.type == LearningPathStepType.finalTest;
+    final isMilestone = isReview || isFinalTest;
+    final typeColor = _stepTypeColor(step.type);
     final stepColor = isCompleted
         ? AppTheme.success
+        : isMilestone
+        ? typeColor
         : isUnlocked
-            ? _stepTypeColor(step.type)
-            : colors.onSurfaceVariant;
+        ? typeColor
+        : colors.onSurfaceVariant;
+    final borderColor = isMilestone
+        ? stepColor.withValues(alpha: isUnlocked ? 0.72 : 0.45)
+        : colors.outlineVariant.withValues(alpha: 0.5);
+    final backgroundColor = isMilestone
+        ? stepColor.withValues(alpha: isUnlocked ? 0.08 : 0.04)
+        : Colors.transparent;
+    final badgeLabel = isCompleted
+        ? 'Done'
+        : isUnlocked
+        ? step.type.label
+        : 'Locked';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -266,9 +269,11 @@ class _StudentLearningPathScreenState extends State<StudentLearningPathScreen> {
           child: Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
+              color: backgroundColor,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: colors.outlineVariant.withValues(alpha: 0.5),
+                color: borderColor,
+                width: isMilestone ? 1.4 : 1,
               ),
             ),
             child: Row(
@@ -284,8 +289,8 @@ class _StudentLearningPathScreenState extends State<StudentLearningPathScreen> {
                     isCompleted
                         ? Icons.check_circle_outline
                         : isUnlocked
-                            ? _stepTypeIcon(step.type)
-                            : Icons.lock_outline,
+                        ? _stepTypeIcon(step.type)
+                        : Icons.lock_outline,
                     color: stepColor,
                     size: 24,
                   ),
@@ -316,15 +321,7 @@ class _StudentLearningPathScreenState extends State<StudentLearningPathScreen> {
                   ),
                 ),
                 const SizedBox(width: 10),
-                _badge(
-                  context: context,
-                  label: isCompleted
-                      ? 'Done'
-                      : isUnlocked
-                          ? step.type.label
-                          : 'Locked',
-                  color: stepColor,
-                ),
+                _badge(context: context, label: badgeLabel, color: stepColor),
               ],
             ),
           ),
