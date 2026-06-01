@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../data/learning_path_data.dart';
 import '../../models/learning_path_step.dart';
 import '../../services/learning_path_progress_service.dart';
 import '../../theme/app_theme.dart';
@@ -45,9 +46,7 @@ class _StudentLearningStepScreenState extends State<StudentLearningStepScreen> {
     final stepColor = _stepColor(widget.step.type);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.step.type.label),
-      ),
+      appBar: AppBar(title: Text(widget.step.type.label)),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -141,9 +140,7 @@ class _StudentLearningStepScreenState extends State<StudentLearningStepScreen> {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: colors.outlineVariant.withValues(alpha: 0.5),
-        ),
+        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -217,6 +214,17 @@ class _StudentLearningStepScreenState extends State<StudentLearningStepScreen> {
   }
 
   String _exercisePrompt(LearningPathStep step) {
+    if (step.skillId == a1RoadmapSkillId) {
+      switch (step.type) {
+        case LearningPathStepType.lesson:
+          return 'This lesson represents one focused practice block inside the guided A1 road map.';
+        case LearningPathStepType.review:
+          return 'This review combines the previous six road activities before the student moves forward.';
+        case LearningPathStepType.finalTest:
+          return 'This final test covers the complete A1 road map and should feel stricter than normal practice.';
+      }
+    }
+
     switch (step.type) {
       case LearningPathStepType.lesson:
         return 'This lesson represents one focused practice block in the '

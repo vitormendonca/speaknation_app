@@ -14,53 +14,11 @@ class StudentA1RoadmapScreen extends StatefulWidget {
 }
 
 class _StudentA1RoadmapScreenState extends State<StudentA1RoadmapScreen> {
-  static const List<String> _roadSkillOrder = [
-    'listening',
-    'vocabulary',
-    'speaking',
-    'reading',
-    'homework',
-  ];
-
   Set<String> completedStepIds = {};
   bool isLoading = true;
 
   List<LearningPathStep> get roadSteps {
-    final steps = <LearningPathStep>[];
-
-    for (int group = 1; group <= 4; group++) {
-      for (int lessonInGroup = 1; lessonInGroup <= 3; lessonInGroup++) {
-        final lessonNumber = ((group - 1) * 3) + lessonInGroup;
-
-        for (final skillId in _roadSkillOrder) {
-          steps.add(
-            _findRoadStep(
-              skillId: skillId,
-              type: LearningPathStepType.lesson,
-              lessonNumber: lessonNumber,
-            ),
-          );
-        }
-      }
-
-      for (final skillId in _roadSkillOrder) {
-        steps.add(
-          _findRoadStep(
-            skillId: skillId,
-            type: LearningPathStepType.review,
-            reviewNumber: group,
-          ),
-        );
-      }
-    }
-
-    for (final skillId in _roadSkillOrder) {
-      steps.add(
-        _findRoadStep(skillId: skillId, type: LearningPathStepType.finalTest),
-      );
-    }
-
-    return steps;
+    return getA1RoadmapSteps();
   }
 
   @override
@@ -78,21 +36,6 @@ class _StudentA1RoadmapScreenState extends State<StudentA1RoadmapScreen> {
       completedStepIds = completed;
       isLoading = false;
     });
-  }
-
-  LearningPathStep _findRoadStep({
-    required String skillId,
-    required LearningPathStepType type,
-    int? lessonNumber,
-    int? reviewNumber,
-  }) {
-    return learningPathSteps.firstWhere(
-      (step) =>
-          step.skillId == skillId &&
-          step.type == type &&
-          step.lessonNumber == lessonNumber &&
-          step.reviewNumber == reviewNumber,
-    );
   }
 
   bool _isRoadStepUnlocked(int index) {
@@ -244,7 +187,7 @@ class _StudentA1RoadmapScreenState extends State<StudentA1RoadmapScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'A guided A1 path mixing Listening, Vocabulary, Speaking, Reading and Grammar.',
+            'A guided A1 path with integrated practice, one review every 6 activities and one final test.',
             style: TextStyle(
               color: colors.onSurfaceVariant,
               fontSize: 15,
@@ -273,12 +216,14 @@ class _StudentA1RoadmapScreenState extends State<StudentA1RoadmapScreen> {
               ),
               _badge(
                 context: context,
-                label: '$completedLessons/60 lessons',
+                label:
+                    '$completedLessons/${_totalByType(steps, LearningPathStepType.lesson)} lessons',
                 color: AppTheme.info,
               ),
               _badge(
                 context: context,
-                label: '$completedReviews/20 reviews',
+                label:
+                    '$completedReviews/${_totalByType(steps, LearningPathStepType.review)} reviews',
                 color: AppTheme.warning,
               ),
             ],
@@ -495,9 +440,15 @@ class _StudentA1RoadmapScreenState extends State<StudentA1RoadmapScreen> {
         return AppTheme.brandRed;
       case 'homework':
         return const Color(0xFF5E35B1);
+      case a1RoadmapSkillId:
+        return AppTheme.accentPurple;
       default:
         return AppTheme.info;
     }
+  }
+
+  int _totalByType(List<LearningPathStep> steps, LearningPathStepType type) {
+    return steps.where((step) => step.type == type).length;
   }
 
   Color _stepTypeColor(LearningPathStepType type) {
@@ -534,6 +485,8 @@ class _StudentA1RoadmapScreenState extends State<StudentA1RoadmapScreen> {
         return Icons.style_outlined;
       case 'homework':
         return Icons.edit_note_outlined;
+      case a1RoadmapSkillId:
+        return Icons.route_outlined;
       default:
         return Icons.school_outlined;
     }
