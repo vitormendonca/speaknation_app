@@ -228,27 +228,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
 
   Widget _todayPanel(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final hasReview = totalReviewNeeded > 0;
-    final hasPending = totalPending > 0;
-
-    final String actionLabel;
-    final IconData actionIcon;
-    final VoidCallback action;
-
-    if (hasReview) {
-      actionLabel = 'Review';
-      actionIcon = Icons.rate_review_outlined;
-      action = () => openScreen(context, const StudentAssignmentsScreen());
-    } else if (hasPending) {
-      actionLabel = 'Guided';
-      actionIcon = Icons.assignment_outlined;
-      action = () => openScreen(context, const StudentAssignmentsScreen());
-    } else {
-      actionLabel = 'Continue';
-      actionIcon = Icons.play_arrow_rounded;
-      action = () =>
-          openScreen(context, StudentLearningPathScreen(skillId: nextSkillId));
-    }
 
     return _panel(
       context: context,
@@ -320,12 +299,17 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                 ),
               ),
               const SizedBox(width: 4),
-              SizedBox(
-                height: 42,
-                child: ElevatedButton.icon(
-                  onPressed: action,
-                  icon: Icon(actionIcon, size: 19),
-                  label: Text(actionLabel),
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: AppTheme.brandRed.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.route_outlined,
+                  color: AppTheme.brandRed,
+                  size: 21,
                 ),
               ),
             ],
@@ -679,6 +663,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           subtitle: 'Tap a skill to open its path.',
         ),
         const SizedBox(height: 12),
+        _continueRoadCard(context),
+        const SizedBox(height: 12),
         LayoutBuilder(
           builder: (context, constraints) {
             final columns = constraints.maxWidth > 760 ? 5 : 2;
@@ -745,6 +731,82 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           },
         ),
       ],
+    );
+  }
+
+  Widget _continueRoadCard(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () => openScreen(
+          context,
+          StudentLearningPathScreen(skillId: nextSkillId),
+        ),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppTheme.brandRed.withValues(alpha: 0.09),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: AppTheme.brandRed.withValues(alpha: 0.55),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppTheme.brandRed.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.play_arrow_rounded,
+                  color: AppTheme.brandRed,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Continue A1 Road',
+                      style: TextStyle(
+                        color: colors.onSurface,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Open $nextSkillTitle and keep your path moving.',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: colors.onSurfaceVariant,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: colors.onSurfaceVariant,
+                size: 16,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
