@@ -6,6 +6,7 @@ import '../../services/assignment_service.dart';
 import '../../services/learning_path_progress_service.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/theme_controller.dart';
+import 'student_a1_roadmap_screen.dart';
 import 'student_assignments_screen.dart';
 import 'student_learning_path_screen.dart';
 import 'student_level_tests_screen.dart';
@@ -371,10 +372,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                 title: 'Path',
                 value: '$pathCompleted/60',
                 color: AppTheme.info,
-                onTap: () => openScreen(
-                  context,
-                  StudentLearningPathScreen(skillId: nextSkillId),
-                ),
+                onTap: () =>
+                    openScreen(context, const StudentA1RoadmapScreen()),
               ),
             ),
             SizedBox(
@@ -403,10 +402,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                 title: 'Done',
                 value: pathCompleted.toString(),
                 color: AppTheme.success,
-                onTap: () => openScreen(
-                  context,
-                  StudentLearningPathScreen(skillId: nextSkillId),
-                ),
+                onTap: () =>
+                    openScreen(context, const StudentA1RoadmapScreen()),
               ),
             ),
             SizedBox(
@@ -741,10 +738,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
-        onTap: () => openScreen(
-          context,
-          StudentLearningPathScreen(skillId: nextSkillId),
-        ),
+        onTap: () => openScreen(context, const StudentA1RoadmapScreen()),
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.all(14),
@@ -785,7 +779,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Open $nextSkillTitle and keep your path moving.',
+                      'Next focus: $nextSkillTitle inside the guided road.',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
