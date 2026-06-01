@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../models/assigned_activity.dart';
 import '../../services/assignment_service.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/app_ui.dart';
 
 class TeacherAssignedActivitiesScreen extends StatefulWidget {
   const TeacherAssignedActivitiesScreen({super.key});
@@ -38,13 +40,9 @@ class _TeacherAssignedActivitiesScreenState
 
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Assigned activity removed.'),
-        backgroundColor: Colors.redAccent,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Assigned activity removed.')));
 
     await _loadAssignedActivities();
   }
@@ -53,8 +51,6 @@ class _TeacherAssignedActivitiesScreenState
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('To assign an activity, open a student profile first.'),
-        backgroundColor: Colors.blueGrey,
-        behavior: SnackBarBehavior.floating,
       ),
     );
   }
@@ -62,169 +58,126 @@ class _TeacherAssignedActivitiesScreenState
   IconData _getActivityIcon(String category) {
     switch (category) {
       case 'Listening':
-        return Icons.headphones;
+        return Icons.headphones_outlined;
       case 'Vocabulary':
-        return Icons.menu_book;
+        return Icons.style_outlined;
       case 'Homework':
-        return Icons.assignment;
+        return Icons.edit_note_outlined;
       case 'Reading':
-        return Icons.article;
+        return Icons.menu_book_outlined;
       default:
-        return Icons.task_alt;
+        return Icons.task_alt_outlined;
     }
   }
 
   Color _getStatusColor(String status) {
     switch (status) {
       case 'Completed':
-        return Colors.greenAccent;
+        return AppTheme.success;
       case 'Review Needed':
-        return Colors.orangeAccent;
+        return AppTheme.warning;
+      case 'Reviewed':
+        return AppTheme.info;
       case 'Pending':
       default:
-        return Colors.amberAccent;
+        return AppTheme.warning;
     }
   }
 
   Widget _buildAssignedActivityCard(AssignedActivity activity) {
+    final colors = Theme.of(context).colorScheme;
     final statusColor = _getStatusColor(activity.status);
 
-    return Card(
-      color: const Color(0xFF1E1E1E),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Row(
-          children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: const Color(0xFF6E59A5).withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Icon(
-                _getActivityIcon(activity.category),
-                color: const Color(0xFFD3E4FD),
-                size: 28,
-              ),
-            ),
-            const SizedBox(width: 16),
-
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    activity.title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '${activity.assignedToType}: ${activity.assignedToName}',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${activity.category} • Level ${activity.level}',
-                    style: const TextStyle(
-                      color: Colors.white54,
-                      fontSize: 13,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Due date: ${activity.dueDate}',
-                    style: const TextStyle(
-                      color: Colors.white38,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(width: 8),
-
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+    return AppPanel(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        children: [
+          AppIconBox(
+            icon: _getActivityIcon(activity.category),
+            color: statusColor,
+          ),
+          const SizedBox(width: 13),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
+                Text(
+                  activity.title,
+                  style: TextStyle(
+                    color: colors.onSurface,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
                   ),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.16),
-                    borderRadius: BorderRadius.circular(20),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  '${activity.assignedToType}: ${activity.assignedToName}',
+                  style: TextStyle(
+                    color: colors.onSurfaceVariant,
+                    fontSize: 13,
                   ),
-                  child: Text(
-                    activity.status,
-                    style: TextStyle(
-                      color: statusColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '${activity.category} - Level ${activity.level}',
+                  style: TextStyle(
+                    color: colors.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'Due date: ${activity.dueDate}',
+                  style: TextStyle(
+                    color: colors.onSurfaceVariant,
+                    fontSize: 12,
                   ),
                 ),
                 const SizedBox(height: 8),
-                IconButton(
-                  onPressed: () => _deleteAssignment(activity.id),
-                  icon: const Icon(
-                    Icons.delete_outline,
-                    color: Colors.white38,
-                  ),
-                ),
+                AppStatusBadge(label: activity.status, color: statusColor),
               ],
             ),
-          ],
-        ),
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            tooltip: 'Remove assignment',
+            onPressed: () => _deleteAssignment(activity.id),
+            icon: Icon(Icons.delete_outline, color: colors.onSurfaceVariant),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildEmptyState() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: Colors.white10,
-        ),
-      ),
+    final colors = Theme.of(context).colorScheme;
+
+    return AppPanel(
+      padding: const EdgeInsets.all(22),
       child: Column(
         children: [
-          const Icon(
+          Icon(
             Icons.assignment_outlined,
-            color: Colors.white38,
-            size: 54,
+            color: colors.onSurfaceVariant,
+            size: 52,
           ),
-          const SizedBox(height: 16),
-          const Text(
+          const SizedBox(height: 14),
+          Text(
             'No assigned activities yet',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Colors.white,
+              color: colors.onSurface,
               fontSize: 18,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w800,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'To assign an activity, go to Students, choose a student and tap Assign Activity.',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Colors.white70,
+              color: colors.onSurfaceVariant,
               fontSize: 14,
               height: 1.4,
             ),
@@ -234,17 +187,6 @@ class _TeacherAssignedActivitiesScreenState
             onPressed: _showAssignInfo,
             icon: const Icon(Icons.info_outline),
             label: const Text('How to assign'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6E59A5),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 18,
-                vertical: 12,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
           ),
         ],
       ),
@@ -255,9 +197,7 @@ class _TeacherAssignedActivitiesScreenState
     return const Center(
       child: Padding(
         padding: EdgeInsets.only(top: 80),
-        child: CircularProgressIndicator(
-          color: Color(0xFF6E59A5),
-        ),
+        child: CircularProgressIndicator(),
       ),
     );
   }
@@ -267,13 +207,11 @@ class _TeacherAssignedActivitiesScreenState
     final hasAssignedActivities = assignedActivities.isNotEmpty;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF121212),
-        elevation: 0,
         title: const Text('Assigned Activities'),
         actions: [
           IconButton(
+            tooltip: 'Refresh activities',
             onPressed: _loadAssignedActivities,
             icon: const Icon(Icons.refresh),
           ),
@@ -281,36 +219,21 @@ class _TeacherAssignedActivitiesScreenState
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAssignInfo,
-        backgroundColor: const Color(0xFF6E59A5),
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add_task),
+        icon: const Icon(Icons.add_task_outlined),
         label: const Text('Assign'),
       ),
       body: RefreshIndicator(
         onRefresh: _loadAssignedActivities,
-        color: const Color(0xFF6E59A5),
+        color: AppTheme.brandRed,
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            const Text(
-              'Assigned Activities',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-              ),
+            const AppSectionHeader(
+              title: 'Assigned Activities',
+              subtitle:
+                  'View activities that have already been assigned to students.',
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'View activities that have already been assigned to students.',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 15,
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 24),
-
+            const SizedBox(height: 20),
             if (isLoading)
               _buildLoadingState()
             else if (!hasAssignedActivities)

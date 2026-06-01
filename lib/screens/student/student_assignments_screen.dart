@@ -11,6 +11,8 @@ import '../../models/listening_exercise.dart';
 import '../../models/reading_activity.dart';
 import '../../models/vocabulary_quiz.dart';
 import '../../services/assignment_service.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/app_ui.dart';
 import '../homework/homework_activity_screen.dart';
 import '../listening/listening_exercise_screen.dart';
 import '../reading/reading_screen.dart';
@@ -106,8 +108,6 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
         content: Text(
           'Activity not found. Check if the assigned activity title matches the real activity title.',
         ),
-        backgroundColor: Color(0xFFB00020),
-        behavior: SnackBarBehavior.floating,
         duration: Duration(milliseconds: 1200),
       ),
     );
@@ -196,31 +196,33 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final int totalAssignments = studentAssignments.length;
-
-    final int pendingCount = studentAssignments
+    final totalAssignments = studentAssignments.length;
+    final pendingCount = studentAssignments
         .where((activity) => activity.status == 'Pending')
         .length;
-
-    final int completedCount = studentAssignments
+    final completedCount = studentAssignments
         .where(
           (activity) =>
               activity.status == 'Completed' || activity.status == 'Reviewed',
         )
         .length;
-
-    final int reviewNeededCount = studentAssignments
+    final reviewNeededCount = studentAssignments
         .where((activity) => activity.status == 'Review Needed')
         .length;
 
+    final studentLabel = currentStudentName.isEmpty
+        ? 'Check the activities your teacher assigned to you.'
+        : 'Activities assigned to $currentStudentName.';
+    final levelLabel = currentStudentLevel.isEmpty
+        ? studentLabel
+        : '$studentLabel Level $currentStudentLevel.';
+
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
         title: const Text('My Assignments'),
-        backgroundColor: const Color(0xFFB00020),
-        foregroundColor: Colors.white,
         actions: [
           IconButton(
+            tooltip: 'Refresh assignments',
             onPressed: _loadStudentAssignments,
             icon: const Icon(Icons.refresh),
           ),
@@ -228,160 +230,96 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: _loadStudentAssignments,
-        color: const Color(0xFFB00020),
+        color: AppTheme.brandRed,
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(22),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E1E1E),
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: Colors.white12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'My Assignments',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    currentStudentName.isEmpty
-                        ? 'Check the activities your teacher assigned to you.'
-                        : 'Activities assigned to $currentStudentName.',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 16,
-                      height: 1.4,
-                    ),
-                  ),
-                  if (currentStudentLevel.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      'Level $currentStudentLevel',
-                      style: const TextStyle(
-                        color: Colors.white38,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-
+            AppSectionHeader(title: 'My Assignments', subtitle: levelLabel),
             const SizedBox(height: 20),
-
-            Row(
-              children: [
-                Expanded(
-                  child: _summaryCard(
-                    title: 'Total',
-                    value: isLoading ? '...' : totalAssignments.toString(),
-                    icon: Icons.assignment,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _summaryCard(
-                    title: 'Pending',
-                    value: isLoading ? '...' : pendingCount.toString(),
-                    icon: Icons.hourglass_empty,
-                  ),
-                ),
-              ],
+            _summaryGrid(
+              totalAssignments: totalAssignments,
+              pendingCount: pendingCount,
+              completedCount: completedCount,
+              reviewNeededCount: reviewNeededCount,
             ),
-
-            const SizedBox(height: 12),
-
-            Row(
-              children: [
-                Expanded(
-                  child: _summaryCard(
-                    title: 'Completed',
-                    value: isLoading ? '...' : completedCount.toString(),
-                    icon: Icons.check_circle,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _summaryCard(
-                    title: 'Review',
-                    value: isLoading ? '...' : reviewNeededCount.toString(),
-                    icon: Icons.refresh,
-                  ),
-                ),
-              ],
-            ),
-
             const SizedBox(height: 24),
-
-            const Text(
-              'Assigned to You',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
+            const AppSectionHeader(
+              title: 'Assigned to You',
+              subtitle:
+                  'Open teacher recommendations and keep your path moving.',
             ),
-
             const SizedBox(height: 14),
-
             if (isLoading)
               _loadingCard()
             else if (studentAssignments.isEmpty)
-              _emptyCard()
+              _emptyCard(context)
             else
               for (final activity in studentAssignments)
                 _assignmentCard(context: context, activity: activity),
-
             const SizedBox(height: 20),
-
-            _infoCard(),
+            _infoCard(context),
           ],
         ),
       ),
     );
   }
 
-  Widget _summaryCard({
-    required String title,
-    required String value,
-    required IconData icon,
+  Widget _summaryGrid({
+    required int totalAssignments,
+    required int pendingCount,
+    required int completedCount,
+    required int reviewNeededCount,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white12),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: const Color(0xFFE53935), size: 30),
-          const SizedBox(height: 10),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth > 700 ? 4 : 2;
+        final spacing = 12.0;
+        final itemWidth =
+            (constraints.maxWidth - spacing * (columns - 1)) / columns;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: [
+            SizedBox(
+              width: itemWidth,
+              child: AppMetricCard(
+                title: 'Total',
+                value: isLoading ? '...' : totalAssignments.toString(),
+                icon: Icons.assignment_outlined,
+                color: AppTheme.info,
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white60, fontSize: 13),
-          ),
-        ],
-      ),
+            SizedBox(
+              width: itemWidth,
+              child: AppMetricCard(
+                title: 'Pending',
+                value: isLoading ? '...' : pendingCount.toString(),
+                icon: Icons.schedule_outlined,
+                color: AppTheme.warning,
+              ),
+            ),
+            SizedBox(
+              width: itemWidth,
+              child: AppMetricCard(
+                title: 'Completed',
+                value: isLoading ? '...' : completedCount.toString(),
+                icon: Icons.check_circle_outline,
+                color: AppTheme.success,
+              ),
+            ),
+            SizedBox(
+              width: itemWidth,
+              child: AppMetricCard(
+                title: 'Review',
+                value: isLoading ? '...' : reviewNeededCount.toString(),
+                icon: Icons.rate_review_outlined,
+                color: AppTheme.warning,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -389,87 +327,79 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
     required BuildContext context,
     required AssignedActivity activity,
   }) {
-    final Color statusColor = _statusColor(activity.status);
-    final IconData statusIcon = _statusIcon(activity.status);
+    final colors = Theme.of(context).colorScheme;
+    final statusColor = _statusColor(activity.status);
+    final statusIcon = _statusIcon(activity.status);
 
-    return Container(
+    return AppPanel(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white12),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              CircleAvatar(
-                backgroundColor: const Color(0xFFB00020).withValues(alpha: 0.2),
-                child: Icon(
-                  _categoryIcon(activity.category),
-                  color: const Color(0xFFE53935),
-                ),
+              AppIconBox(
+                icon: _categoryIcon(activity.category),
+                color: statusColor,
               ),
-
               const SizedBox(width: 12),
-
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       activity.title,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: colors.onSurface,
                         fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-
                     const SizedBox(height: 4),
-
                     Text(
-                      '${activity.category} • ${activity.level}',
-                      style: const TextStyle(
-                        color: Colors.white60,
+                      '${activity.category} - ${activity.level}',
+                      style: TextStyle(
+                        color: colors.onSurfaceVariant,
                         fontSize: 13,
                       ),
                     ),
                   ],
                 ),
               ),
-
-              Icon(statusIcon, color: statusColor),
+              AppStatusBadge(
+                label: activity.status,
+                color: statusColor,
+                icon: statusIcon,
+              ),
             ],
           ),
-
           const SizedBox(height: 14),
-
-          _infoRow(icon: Icons.event, title: 'Due', value: activity.dueDate),
-
           _infoRow(
-            icon: Icons.flag,
+            context: context,
+            icon: Icons.event_outlined,
+            title: 'Due',
+            value: activity.dueDate,
+          ),
+          _infoRow(
+            context: context,
+            icon: Icons.flag_outlined,
             title: 'Status',
             value: activity.status,
             valueColor: statusColor,
           ),
-
           if (activity.note.isNotEmpty) ...[
             const SizedBox(height: 10),
             Text(
               activity.note,
-              style: const TextStyle(
-                color: Colors.white70,
+              style: TextStyle(
+                color: colors.onSurfaceVariant,
                 fontSize: 14,
                 height: 1.4,
               ),
             ),
           ],
-
           const SizedBox(height: 16),
-
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
@@ -478,25 +408,13 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
               },
               icon: Icon(
                 _isCompletedStatus(activity.status)
-                    ? Icons.visibility
-                    : Icons.play_arrow,
+                    ? Icons.visibility_outlined
+                    : Icons.play_arrow_rounded,
               ),
               label: Text(
                 _isCompletedStatus(activity.status)
                     ? 'Open Again'
                     : 'Open Activity',
-              ),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFFE53935),
-                side: const BorderSide(color: Color(0xFFE53935)),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                textStyle: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
               ),
             ),
           ),
@@ -506,34 +424,37 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
   }
 
   Widget _infoRow({
+    required BuildContext context,
     required IconData icon,
     required String title,
     required String value,
     Color? valueColor,
   }) {
+    final colors = Theme.of(context).colorScheme;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 9),
       child: Row(
         children: [
-          Icon(icon, color: const Color(0xFFE53935), size: 20),
+          Icon(icon, color: AppTheme.brandRed, size: 20),
           const SizedBox(width: 10),
           Text(
             '$title: ',
-            style: const TextStyle(
-              color: Colors.white60,
+            style: TextStyle(
+              color: colors.onSurfaceVariant,
               fontSize: 14,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
             ),
           ),
           Expanded(
             child: Text(
               value,
               style: TextStyle(
-                color: valueColor ?? Colors.white,
+                color: valueColor ?? colors.onSurface,
                 fontSize: 14,
                 fontWeight: valueColor == null
                     ? FontWeight.normal
-                    : FontWeight.bold,
+                    : FontWeight.w800,
               ),
             ),
           ),
@@ -543,60 +464,48 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
   }
 
   Widget _loadingCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white12),
-      ),
-      child: const Center(
-        child: CircularProgressIndicator(color: Color(0xFFB00020)),
-      ),
+    return const AppPanel(
+      padding: EdgeInsets.all(24),
+      child: Center(child: CircularProgressIndicator()),
     );
   }
 
-  Widget _emptyCard() {
-    return Container(
-      width: double.infinity,
+  Widget _emptyCard(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return AppPanel(
       padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white12),
-      ),
-      child: const Text(
+      child: Text(
         'No assignments yet.',
-        style: TextStyle(color: Colors.white70, fontSize: 15),
+        style: TextStyle(color: colors.onSurfaceVariant, fontSize: 15),
       ),
     );
   }
 
-  Widget _infoCard() {
-    return Container(
-      width: double.infinity,
+  Widget _infoCard(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return AppPanel(
       padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white12),
-      ),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'MVP Note',
             style: TextStyle(
-              color: Colors.white,
-              fontSize: 21,
-              fontWeight: FontWeight.bold,
+              color: colors.onSurface,
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
             ),
           ),
-          SizedBox(height: 12),
+          const SizedBox(height: 10),
           Text(
             'Opening an activity does not automatically complete it. The assignment is completed only after the activity returns a real completion confirmation.',
-            style: TextStyle(color: Colors.white70, fontSize: 15, height: 1.5),
+            style: TextStyle(
+              color: colors.onSurfaceVariant,
+              fontSize: 14,
+              height: 1.45,
+            ),
           ),
         ],
       ),
@@ -606,15 +515,17 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
   IconData _categoryIcon(String category) {
     switch (category) {
       case 'Listening':
-        return Icons.headphones;
+        return Icons.headphones_outlined;
+      case 'Speaking':
+        return Icons.mic_none_outlined;
       case 'Vocabulary':
-        return Icons.quiz;
+        return Icons.style_outlined;
       case 'Reading':
-        return Icons.menu_book;
+        return Icons.menu_book_outlined;
       case 'Homework':
-        return Icons.assignment;
+        return Icons.edit_note_outlined;
       default:
-        return Icons.school;
+        return Icons.school_outlined;
     }
   }
 
@@ -622,13 +533,12 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
     switch (status) {
       case 'Completed':
       case 'Reviewed':
-        return Colors.greenAccent;
+        return AppTheme.success;
       case 'Review Needed':
-        return Colors.orangeAccent;
+        return AppTheme.warning;
       case 'Pending':
-        return Colors.white54;
       default:
-        return Colors.white54;
+        return AppTheme.info;
     }
   }
 
@@ -636,13 +546,13 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
     switch (status) {
       case 'Completed':
       case 'Reviewed':
-        return Icons.check_circle;
+        return Icons.check_circle_outline;
       case 'Review Needed':
-        return Icons.info;
+        return Icons.rate_review_outlined;
       case 'Pending':
-        return Icons.hourglass_empty;
+        return Icons.schedule_outlined;
       default:
-        return Icons.assignment;
+        return Icons.assignment_outlined;
     }
   }
 

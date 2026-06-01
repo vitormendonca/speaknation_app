@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/theme_controller.dart';
 import '../../widgets/app_ui.dart';
+import 'teacher_assigned_activities_screen.dart';
+import 'teacher_classes_screen.dart';
 import 'teacher_profile_screen.dart';
 import 'teacher_students_screen.dart';
 
@@ -63,7 +65,9 @@ class TeacherHomeScreen extends StatelessWidget {
             color: AppTheme.info,
             title: 'Classes',
             subtitle: 'Manage groups, class schedules and class activities.',
-            onTap: () => _showComingSoon(context, 'Classes'),
+            onTap: () {
+              _openScreen(context, const TeacherClassesScreen());
+            },
           ),
           AppActionTile(
             icon: Icons.assignment_outlined,
@@ -71,7 +75,9 @@ class TeacherHomeScreen extends StatelessWidget {
             title: 'Activities',
             subtitle:
                 'View available homework, listening and vocabulary activities.',
-            onTap: () => _showComingSoon(context, 'Activities'),
+            onTap: () {
+              _openScreen(context, const TeacherAssignedActivitiesScreen());
+            },
           ),
           AppActionTile(
             icon: Icons.query_stats_outlined,
