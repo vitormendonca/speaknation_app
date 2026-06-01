@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../data/learning_path_data.dart';
 import '../../models/assigned_activity.dart';
+import '../../models/learning_path_step.dart';
 import '../../services/app_auth_service.dart';
 import '../../services/assignment_service.dart';
+import '../../services/learning_path_progress_service.dart';
 import '../../services/student_progress_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_ui.dart';
 import '../login_screen.dart';
+import 'student_level_tests_screen.dart';
 
 class StudentProfileScreen extends StatefulWidget {
   const StudentProfileScreen({super.key});
@@ -44,6 +48,10 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
   int readingAverage = 0;
   int homeworkAverage = 0;
 
+  int roadLessonsCompleted = 0;
+  int roadReviewsCompleted = 0;
+  bool roadFinalTestCompleted = false;
+
   bool isLoadingProgress = true;
 
   @override
@@ -65,6 +73,31 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
         );
 
     final averages = await StudentProgressService.getAverageScoresByCategory();
+    final completedStepIds =
+        await LearningPathProgressService.getCompletedStepIds();
+    final roadSteps = getA1RoadmapSteps();
+    final completedRoadLessons = roadSteps
+        .where(
+          (step) =>
+              step.type == LearningPathStepType.lesson &&
+              completedStepIds.contains(step.id),
+        )
+        .length;
+    final completedRoadReviews = roadSteps
+        .where(
+          (step) =>
+              step.type == LearningPathStepType.review &&
+              completedStepIds.contains(step.id),
+        )
+        .length;
+    LearningPathStep? roadFinalStep;
+
+    for (final step in roadSteps) {
+      if (step.type == LearningPathStepType.finalTest) {
+        roadFinalStep = step;
+        break;
+      }
+    }
 
     int listeningPendingCount = 0;
     int speakingPendingCount = 0;
@@ -160,8 +193,22 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
       readingAverage = averages['reading'] ?? 0;
       homeworkAverage = averages['homework'] ?? 0;
 
+      roadLessonsCompleted = completedRoadLessons;
+      roadReviewsCompleted = completedRoadReviews;
+      roadFinalTestCompleted =
+          roadFinalStep != null && completedStepIds.contains(roadFinalStep.id);
+
       isLoadingProgress = false;
     });
+  }
+
+  Future<void> openPlacementTask() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const StudentLevelTestsScreen()),
+    );
+
+    await loadProgress();
   }
 
   Future<void> logout() async {
@@ -256,6 +303,8 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
             const SizedBox(height: 22),
             _currentLevelPanel(context),
             const SizedBox(height: 22),
+            _roadProgressPanel(context),
+            const SizedBox(height: 22),
             _progressPanel(
               context: context,
               totalPending: totalPending,
@@ -299,17 +348,100 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                   ),
                 ),
                 const SizedBox(height: 7),
-                AppStatusBadge(
-                  label: 'Level $studentLevel',
-                  color: AppTheme.brandRed,
-                  icon: Icons.workspace_premium_outlined,
-                ),
+                _levelBadge(context, studentLevel),
               ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  Widget _levelBadge(BuildContext context, String level) {
+    final style = _levelStyle(level);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: style.color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(99),
+        border: Border.all(color: style.borderColor.withValues(alpha: 0.75)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(style.icon, color: style.color, size: 16),
+          const SizedBox(width: 6),
+          Text(
+            'Level ${level.toUpperCase()}',
+            style: TextStyle(
+              color: style.textColor,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          if (style.accentIcon != null) ...[
+            const SizedBox(width: 5),
+            Icon(style.accentIcon, color: style.accentColor, size: 13),
+          ],
+        ],
+      ),
+    );
+  }
+
+  _LevelBadgeStyle _levelStyle(String level) {
+    final normalized = level.toUpperCase();
+    const silver = Color(0xFF9EA7B3);
+    const silverDark = Color(0xFF6F7782);
+    const gold = Color(0xFFC99722);
+    const diamond = Color(0xFF00A6D6);
+
+    if (normalized.startsWith('C')) {
+      return const _LevelBadgeStyle(
+        color: diamond,
+        textColor: diamond,
+        borderColor: Color(0xFF7DE3FF),
+        icon: Icons.diamond_outlined,
+        accentIcon: Icons.auto_awesome,
+        accentColor: Color(0xFFE9FAFF),
+      );
+    }
+
+    switch (normalized) {
+      case 'A2':
+        return const _LevelBadgeStyle(
+          color: silver,
+          textColor: silverDark,
+          borderColor: gold,
+          icon: Icons.workspace_premium_outlined,
+          accentIcon: Icons.auto_awesome,
+          accentColor: gold,
+        );
+      case 'B1':
+        return const _LevelBadgeStyle(
+          color: gold,
+          textColor: gold,
+          borderColor: gold,
+          icon: Icons.workspace_premium_outlined,
+        );
+      case 'B2':
+        return const _LevelBadgeStyle(
+          color: gold,
+          textColor: gold,
+          borderColor: Color(0xFFFFD766),
+          icon: Icons.workspace_premium_outlined,
+          accentIcon: Icons.auto_awesome,
+          accentColor: Color(0xFFFFD766),
+        );
+      case 'A1':
+      default:
+        return const _LevelBadgeStyle(
+          color: silver,
+          textColor: silverDark,
+          borderColor: silver,
+          icon: Icons.workspace_premium_outlined,
+        );
+    }
   }
 
   Widget _summaryGrid({
@@ -378,19 +510,101 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          AppStatusBadge(
-            label: studentLevel,
-            color: AppTheme.brandRed,
-            icon: Icons.workspace_premium_outlined,
-          ),
+          _levelBadge(context, studentLevel),
           const SizedBox(height: 12),
           Text(
-            'Complete activities and level checks to keep your progress clear.',
+            'Use Placement Task when you already know part of the level and want to validate your starting point.',
             style: TextStyle(
               color: colors.onSurfaceVariant,
               fontSize: 14,
               height: 1.4,
             ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton.icon(
+              onPressed: openPlacementTask,
+              icon: const Icon(Icons.workspace_premium_outlined),
+              label: const Text('Open Placement Task'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _roadProgressPanel(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    const totalRoadLessons = 60;
+    final totalRoadReviews = getA1RoadmapSteps()
+        .where((step) => step.type == LearningPathStepType.review)
+        .length;
+    final totalCompleted =
+        roadLessonsCompleted +
+        roadReviewsCompleted +
+        (roadFinalTestCompleted ? 1 : 0);
+    final totalSteps = totalRoadLessons + totalRoadReviews + 1;
+    final progress = totalCompleted / totalSteps;
+
+    return AppPanel(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'A1 Road Progress',
+            style: TextStyle(
+              color: colors.onSurface,
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            isLoadingProgress
+                ? 'Loading progress...'
+                : '$totalCompleted/$totalSteps road steps completed',
+            style: TextStyle(
+              color: colors.onSurfaceVariant,
+              fontSize: 14,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 14),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(99),
+            child: LinearProgressIndicator(
+              value: progress.clamp(0.0, 1.0).toDouble(),
+              minHeight: 9,
+              color: AppTheme.brandRed,
+              backgroundColor: colors.surfaceContainerHighest,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              AppStatusBadge(
+                label: '$roadLessonsCompleted/$totalRoadLessons lessons',
+                color: AppTheme.info,
+                icon: Icons.play_lesson_outlined,
+              ),
+              AppStatusBadge(
+                label: '$roadReviewsCompleted/$totalRoadReviews reviews',
+                color: AppTheme.warning,
+                icon: Icons.rate_review_outlined,
+              ),
+              AppStatusBadge(
+                label: roadFinalTestCompleted ? 'Final 1/1' : 'Final 0/1',
+                color: roadFinalTestCompleted
+                    ? AppTheme.success
+                    : colors.onSurfaceVariant,
+                icon: Icons.workspace_premium_outlined,
+              ),
+            ],
           ),
         ],
       ),
@@ -639,4 +853,22 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
       ),
     );
   }
+}
+
+class _LevelBadgeStyle {
+  final Color color;
+  final Color textColor;
+  final Color borderColor;
+  final IconData icon;
+  final IconData? accentIcon;
+  final Color? accentColor;
+
+  const _LevelBadgeStyle({
+    required this.color,
+    required this.textColor,
+    required this.borderColor,
+    required this.icon,
+    this.accentIcon,
+    this.accentColor,
+  });
 }

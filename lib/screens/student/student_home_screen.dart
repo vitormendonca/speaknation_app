@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../data/learning_path_data.dart';
 import '../../models/assigned_activity.dart';
+import '../../models/learning_path_step.dart';
 import '../../services/assignment_service.dart';
 import '../../services/learning_path_progress_service.dart';
 import '../../theme/app_theme.dart';
@@ -26,6 +28,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   int totalPending = 0;
   int totalCompleted = 0;
   int totalReviewNeeded = 0;
+  int completedRoadReviews = 0;
+  bool roadFinalTestCompleted = false;
 
   bool isLoadingProgress = true;
   bool isTeacherGuidanceExpanded = false;
@@ -74,8 +78,28 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
       assignments,
     );
 
+    final completedStepIds =
+        await LearningPathProgressService.getCompletedStepIds();
     final pathProgress =
-        await LearningPathProgressService.getAllSkillProgress();
+        LearningPathProgressService.getAllSkillProgressFromCompleted(
+          completedStepIds,
+        );
+    final roadSteps = getA1RoadmapSteps();
+    final roadReviewsCompleted = roadSteps
+        .where(
+          (step) =>
+              step.type == LearningPathStepType.review &&
+              completedStepIds.contains(step.id),
+        )
+        .length;
+    LearningPathStep? roadFinalStep;
+
+    for (final step in roadSteps) {
+      if (step.type == LearningPathStepType.finalTest) {
+        roadFinalStep = step;
+        break;
+      }
+    }
 
     if (!mounted) return;
 
@@ -99,6 +123,9 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
       totalPending = pending;
       totalCompleted = completed;
       totalReviewNeeded = reviewNeeded;
+      completedRoadReviews = roadReviewsCompleted;
+      roadFinalTestCompleted =
+          roadFinalStep != null && completedStepIds.contains(roadFinalStep.id);
 
       for (final skill in completedBySkill.keys) {
         final skillProgress = pathProgress[skill];
@@ -140,6 +167,12 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
 
   double get pathProgress {
     return (pathCompleted / 60).clamp(0.0, 1.0).toDouble();
+  }
+
+  int get totalRoadReviews {
+    return getA1RoadmapSteps()
+        .where((step) => step.type == LearningPathStepType.review)
+        .length;
   }
 
   String get firstName {
@@ -216,8 +249,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           children: [
             _todayPanel(context),
             const SizedBox(height: 14),
-            _quickActionGrid(context),
-            const SizedBox(height: 14),
+            _continueRoadCard(context),
+            const SizedBox(height: 12),
             _teacherGuidancePanel(context),
             const SizedBox(height: 18),
             _skillProgressGrid(context),
@@ -275,16 +308,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                           ),
                         ),
                         const SizedBox(height: 3),
-                        Text(
-                          'Next: $nextSkillTitle - Level $currentStudentLevel',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: colors.onSurfaceVariant,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                        _levelBadge(context, currentStudentLevel),
                       ],
                     ),
                   ),
@@ -315,35 +339,34 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(99),
-            child: LinearProgressIndicator(
-              value: pathProgress,
-              minHeight: 9,
-              color: AppTheme.brandRed,
-              backgroundColor: colors.surfaceContainerHighest,
-            ),
-          ),
-          const SizedBox(height: 9),
-          Row(
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              Text(
-                '$pathCompleted/60 lessons',
-                style: TextStyle(
-                  color: colors.onSurface,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                ),
+              _smallBadge(
+                context: context,
+                label: '$pathCompleted/60 lessons',
+                color: AppTheme.info,
               ),
-              const Spacer(),
-              Text(
-                '${(pathProgress * 100).round()}% path',
-                style: TextStyle(
-                  color: colors.onSurfaceVariant,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
+              _smallBadge(
+                context: context,
+                label: '$completedRoadReviews/$totalRoadReviews reviews',
+                color: AppTheme.warning,
+              ),
+              _smallBadge(
+                context: context,
+                label: roadFinalTestCompleted ? 'Final 1/1' : 'Final 0/1',
+                color: roadFinalTestCompleted
+                    ? AppTheme.success
+                    : colors.onSurfaceVariant,
+              ),
+              _compactAction(
+                context: context,
+                icon: Icons.workspace_premium_outlined,
+                label: 'Placement Task',
+                onTap: () =>
+                    openScreen(context, const StudentLevelTestsScreen()),
               ),
             ],
           ),
@@ -352,149 +375,124 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     );
   }
 
-  Widget _quickActionGrid(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final columns = constraints.maxWidth > 700 ? 4 : 2;
-        final spacing = 10.0;
-        final itemWidth =
-            (constraints.maxWidth - spacing * (columns - 1)) / columns;
+  Widget _levelBadge(BuildContext context, String level) {
+    final style = _levelStyle(level);
 
-        return Wrap(
-          spacing: spacing,
-          runSpacing: spacing,
-          children: [
-            SizedBox(
-              width: itemWidth,
-              child: _quickActionCard(
-                context: context,
-                icon: Icons.route_outlined,
-                title: 'Path',
-                value: '$pathCompleted/60',
-                color: AppTheme.info,
-                onTap: () =>
-                    openScreen(context, const StudentA1RoadmapScreen()),
-              ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      decoration: BoxDecoration(
+        color: style.color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(99),
+        border: Border.all(color: style.borderColor.withValues(alpha: 0.75)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(style.icon, color: style.color, size: 15),
+          const SizedBox(width: 6),
+          Text(
+            'Level ${level.toUpperCase()}',
+            style: TextStyle(
+              color: style.textColor,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
             ),
-            SizedBox(
-              width: itemWidth,
-              child: _quickActionCard(
-                context: context,
-                icon: Icons.assignment_outlined,
-                title: 'Guidance',
-                value: totalAssigned.toString(),
-                color: hasTeacherAttention
-                    ? AppTheme.warning
-                    : AppTheme.brandRed,
-                highlighted: hasTeacherAttention,
-                onTap: () {
-                  setState(() {
-                    isTeacherGuidanceExpanded = !isTeacherGuidanceExpanded;
-                  });
-                },
-              ),
-            ),
-            SizedBox(
-              width: itemWidth,
-              child: _quickActionCard(
-                context: context,
-                icon: Icons.check_circle_outline,
-                title: 'Done',
-                value: pathCompleted.toString(),
-                color: AppTheme.success,
-                onTap: () =>
-                    openScreen(context, const StudentA1RoadmapScreen()),
-              ),
-            ),
-            SizedBox(
-              width: itemWidth,
-              child: _quickActionCard(
-                context: context,
-                icon: totalReviewNeeded > 0
-                    ? Icons.rate_review_outlined
-                    : Icons.workspace_premium_outlined,
-                title: totalReviewNeeded > 0 ? 'Review' : 'Level Test',
-                value: totalReviewNeeded > 0
-                    ? totalReviewNeeded.toString()
-                    : currentStudentLevel,
-                color: totalReviewNeeded > 0 ? AppTheme.warning : AppTheme.info,
-                highlighted: totalReviewNeeded > 0,
-                onTap: () {
-                  if (totalReviewNeeded > 0) {
-                    openScreen(context, const StudentAssignmentsScreen());
-                  } else {
-                    openScreen(context, const StudentLevelTestsScreen());
-                  }
-                },
-              ),
-            ),
+          ),
+          if (style.accentIcon != null) ...[
+            const SizedBox(width: 5),
+            Icon(style.accentIcon, color: style.accentColor, size: 13),
           ],
-        );
-      },
+        ],
+      ),
     );
   }
 
-  Widget _quickActionCard({
+  _LevelBadgeStyle _levelStyle(String level) {
+    final normalized = level.toUpperCase();
+    const silver = Color(0xFF9EA7B3);
+    const silverDark = Color(0xFF6F7782);
+    const gold = Color(0xFFC99722);
+    const diamond = Color(0xFF00A6D6);
+
+    if (normalized.startsWith('C')) {
+      return const _LevelBadgeStyle(
+        color: diamond,
+        textColor: diamond,
+        borderColor: Color(0xFF7DE3FF),
+        icon: Icons.diamond_outlined,
+        accentIcon: Icons.auto_awesome,
+        accentColor: Color(0xFFE9FAFF),
+      );
+    }
+
+    switch (normalized) {
+      case 'A2':
+        return const _LevelBadgeStyle(
+          color: silver,
+          textColor: silverDark,
+          borderColor: gold,
+          icon: Icons.workspace_premium_outlined,
+          accentIcon: Icons.auto_awesome,
+          accentColor: gold,
+        );
+      case 'B1':
+        return const _LevelBadgeStyle(
+          color: gold,
+          textColor: gold,
+          borderColor: gold,
+          icon: Icons.workspace_premium_outlined,
+        );
+      case 'B2':
+        return const _LevelBadgeStyle(
+          color: gold,
+          textColor: gold,
+          borderColor: Color(0xFFFFD766),
+          icon: Icons.workspace_premium_outlined,
+          accentIcon: Icons.auto_awesome,
+          accentColor: Color(0xFFFFD766),
+        );
+      case 'A1':
+      default:
+        return const _LevelBadgeStyle(
+          color: silver,
+          textColor: silverDark,
+          borderColor: silver,
+          icon: Icons.workspace_premium_outlined,
+        );
+    }
+  }
+
+  Widget _compactAction({
     required BuildContext context,
     required IconData icon,
-    required String title,
-    required String value,
-    required Color color,
+    required String label,
     required VoidCallback onTap,
-    bool highlighted = false,
   }) {
     final colors = Theme.of(context).colorScheme;
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(99),
         onTap: onTap,
         child: Container(
-          height: 86,
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
           decoration: BoxDecoration(
-            color: highlighted
-                ? color.withValues(alpha: 0.11)
-                : Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: highlighted
-                  ? color.withValues(alpha: 0.7)
-                  : _borderColor(context),
-            ),
+            color: colors.surfaceContainerHighest.withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(99),
+            border: Border.all(color: _borderColor(context)),
           ),
           child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, color: color, size: 24),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      value,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: colors.onSurface,
-                        fontSize: 21,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: colors.onSurfaceVariant,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
+              Icon(icon, color: colors.onSurfaceVariant, size: 14),
+              const SizedBox(width: 5),
+              Text(
+                label,
+                style: TextStyle(
+                  color: colors.onSurfaceVariant,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
             ],
@@ -659,8 +657,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           title: 'A1 Skill Progress',
           subtitle: 'Tap a skill to open its path.',
         ),
-        const SizedBox(height: 12),
-        _continueRoadCard(context),
         const SizedBox(height: 12),
         LayoutBuilder(
           builder: (context, constraints) {
@@ -997,4 +993,22 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return colors.outlineVariant.withValues(alpha: isDark ? 0.35 : 0.8);
   }
+}
+
+class _LevelBadgeStyle {
+  final Color color;
+  final Color textColor;
+  final Color borderColor;
+  final IconData icon;
+  final IconData? accentIcon;
+  final Color? accentColor;
+
+  const _LevelBadgeStyle({
+    required this.color,
+    required this.textColor,
+    required this.borderColor,
+    required this.icon,
+    this.accentIcon,
+    this.accentColor,
+  });
 }
