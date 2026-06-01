@@ -1,11 +1,11 @@
 {
-    "name": "speaknation_app",
-    "short_name": "speaknation_app",
+    "name": "SpeakNation",
+    "short_name": "SpeakNation",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#121212",
+    "theme_color": "#B00020",
+    "description": "Guided English learning with teacher support and student progress tracking.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

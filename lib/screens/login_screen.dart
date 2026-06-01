@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../models/app_session.dart';
 import '../services/app_auth_service.dart';
 import '../services/supabase_bootstrap.dart';
+import '../theme/app_theme.dart';
+import '../theme/theme_controller.dart';
+import '../widgets/app_ui.dart';
 import 'student/student_home_screen.dart';
 import 'teacher/teacher_home_screen.dart';
 
@@ -117,29 +120,18 @@ class _LoginScreenState extends State<LoginScreen> {
     TextInputType? keyboardType,
     void Function(String)? onSubmitted,
   }) {
+    final colors = Theme.of(context).colorScheme;
+
     return TextField(
       controller: controller,
       obscureText: obscureText,
       keyboardType: keyboardType,
       textCapitalization: TextCapitalization.none,
-      style: const TextStyle(color: Colors.white, fontSize: 16),
+      style: TextStyle(color: colors.onSurface, fontSize: 16),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Colors.white70),
         hintText: hint,
-        hintStyle: const TextStyle(color: Colors.white38),
-        filled: true,
-        fillColor: const Color(0xFF121212),
-        prefixIcon: Icon(icon, color: Colors.white54),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Colors.white24),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFB00020)),
-        ),
+        prefixIcon: Icon(icon, color: colors.onSurfaceVariant),
       ),
       onSubmitted: onSubmitted,
       onChanged: (_) {
@@ -155,191 +147,156 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildDemoCodeButton({required String label, required String code}) {
     return OutlinedButton(
       onPressed: isLoading ? null : () => _fillDemoCode(code),
-      style: OutlinedButton.styleFrom(
-        side: const BorderSide(color: Colors.white24),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-      child: Text(label, style: const TextStyle(color: Colors.white)),
+      child: Text(label),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final isSupabaseConfigured = SupabaseBootstrap.isConfigured;
+    final colors = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
         title: const Text('SpeakNation'),
-        backgroundColor: const Color(0xFFB00020),
-        foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            tooltip: 'Toggle theme',
+            icon: Icon(ThemeController.iconFor(context)),
+            onPressed: () => ThemeController.toggle(context),
+          ),
+        ],
       ),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E1E1E),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.white12),
-            ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  width: 82,
-                  height: 82,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFB00020).withValues(alpha: 0.16),
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  child: const Icon(
-                    Icons.language_rounded,
-                    color: Color(0xFFB00020),
-                    size: 46,
-                  ),
-                ),
-                const SizedBox(height: 22),
-                const Text(
-                  'Welcome to SpeakNation',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 29,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  'Sign in with your account or use a demo access code.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 16,
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 28),
-                if (isSupabaseConfigured) ...[
-                  _buildInput(
-                    controller: emailController,
-                    label: 'Email',
-                    hint: 'you@example.com',
-                    icon: Icons.email_outlined,
-                    keyboardType: TextInputType.emailAddress,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildInput(
-                    controller: passwordController,
-                    label: 'Password',
-                    hint: 'Your password',
-                    icon: Icons.lock_outline,
-                    obscureText: true,
-                    onSubmitted: (_) => _loginWithEmail(),
-                  ),
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton.icon(
-                      onPressed: isLoading ? null : _loginWithEmail,
-                      icon: isLoading
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Icon(Icons.login_rounded),
-                      label: const Text(
-                        'Sign In',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFB00020),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 22),
-                  const Divider(color: Colors.white12),
-                  const SizedBox(height: 18),
-                ],
-                _buildInput(
-                  controller: accessCodeController,
-                  label: 'Demo access code',
-                  hint: 'Example: joao123',
-                  icon: Icons.vpn_key_outlined,
-                  onSubmitted: (_) => _loginWithCode(),
-                ),
-                if (errorMessage != null) ...[
-                  const SizedBox(height: 10),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      errorMessage!,
-                      style: const TextStyle(
-                        color: Colors.orangeAccent,
-                        fontSize: 13,
-                        height: 1.3,
-                      ),
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 18),
-                SizedBox(
-                  width: double.infinity,
-                  height: 54,
-                  child: ElevatedButton.icon(
-                    onPressed: isLoading ? null : _loginWithCode,
-                    icon: const Icon(Icons.play_arrow_rounded),
-                    label: const Text(
-                      'Enter Demo',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFB00020),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 22),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF121212),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.white12),
-                  ),
+                AppPanel(
+                  padding: const EdgeInsets.all(24),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text(
-                        'Demo access codes',
+                      const AppIconBox(
+                        icon: Icons.language_rounded,
+                        color: AppTheme.brandRed,
+                        size: 72,
+                        iconSize: 40,
+                      ),
+                      const SizedBox(height: 22),
+                      Text(
+                        'Welcome to SpeakNation',
+                        textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
+                          color: colors.onSurface,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                       const SizedBox(height: 10),
+                      Text(
+                        'Sign in with your account or use a demo access code.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: colors.onSurfaceVariant,
+                          fontSize: 15,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+                      if (isSupabaseConfigured) ...[
+                        _buildInput(
+                          controller: emailController,
+                          label: 'Email',
+                          hint: 'you@example.com',
+                          icon: Icons.email_outlined,
+                          keyboardType: TextInputType.emailAddress,
+                        ),
+                        const SizedBox(height: 12),
+                        _buildInput(
+                          controller: passwordController,
+                          label: 'Password',
+                          hint: 'Your password',
+                          icon: Icons.lock_outline,
+                          obscureText: true,
+                          onSubmitted: (_) => _loginWithEmail(),
+                        ),
+                        const SizedBox(height: 14),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton.icon(
+                            onPressed: isLoading ? null : _loginWithEmail,
+                            icon: isLoading
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(Icons.login_rounded),
+                            label: const Text('Sign In'),
+                          ),
+                        ),
+                        const SizedBox(height: 22),
+                        Divider(color: Theme.of(context).dividerColor),
+                        const SizedBox(height: 18),
+                      ],
+                      _buildInput(
+                        controller: accessCodeController,
+                        label: 'Demo access code',
+                        hint: 'Example: joao123',
+                        icon: Icons.vpn_key_outlined,
+                        onSubmitted: (_) => _loginWithCode(),
+                      ),
+                      if (errorMessage != null) ...[
+                        const SizedBox(height: 10),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            errorMessage!,
+                            style: const TextStyle(
+                              color: AppTheme.warning,
+                              fontSize: 13,
+                              height: 1.3,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 18),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton.icon(
+                          onPressed: isLoading ? null : _loginWithCode,
+                          icon: const Icon(Icons.play_arrow_rounded),
+                          label: const Text('Enter Demo'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                AppPanel(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Demo access codes',
+                        style: TextStyle(
+                          color: colors.onSurface,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
                       Row(
                         children: [
                           Expanded(
@@ -375,20 +332,29 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 10),
-                      const Text(
+                      const SizedBox(height: 12),
+                      Text(
                         'Students: joao123, maria123, ana123 - Teacher: teacher123',
-                        style: TextStyle(color: Colors.white38, fontSize: 12),
+                        style: TextStyle(
+                          color: colors.onSurfaceVariant,
+                          fontSize: 12,
+                          height: 1.3,
+                        ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 18),
-                Text(
-                  isSupabaseConfigured
+                const SizedBox(height: 16),
+                AppStatusBadge(
+                  label: isSupabaseConfigured
                       ? 'Supabase connected - MVP version'
                       : 'Local demo mode - MVP version',
-                  style: const TextStyle(color: Colors.white38, fontSize: 13),
+                  color: isSupabaseConfigured
+                      ? AppTheme.success
+                      : AppTheme.info,
+                  icon: isSupabaseConfigured
+                      ? Icons.cloud_done_outlined
+                      : Icons.storage_outlined,
                 ),
               ],
             ),
