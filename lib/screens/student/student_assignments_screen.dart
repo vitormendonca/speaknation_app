@@ -4,11 +4,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/homework_data.dart';
 import '../../data/listening_data.dart';
 import '../../data/reading_data.dart';
+import '../../data/speaking_data.dart';
 import '../../data/vocabulary_data.dart';
 import '../../models/assigned_activity.dart';
 import '../../models/homework_activity.dart';
 import '../../models/listening_exercise.dart';
 import '../../models/reading_activity.dart';
+import '../../models/speaking_activity.dart';
 import '../../models/vocabulary_quiz.dart';
 import '../../services/assignment_service.dart';
 import '../../theme/app_theme.dart';
@@ -16,6 +18,7 @@ import '../../widgets/app_ui.dart';
 import '../homework/homework_activity_screen.dart';
 import '../listening/listening_exercise_screen.dart';
 import '../reading/reading_screen.dart';
+import '../speaking/speaking_activity_screen.dart';
 import '../vocabulary/vocabulary_quiz_screen.dart';
 
 class StudentAssignmentsScreen extends StatefulWidget {
@@ -82,6 +85,16 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
 
   ReadingActivity? _findReadingActivity(String title) {
     for (final activity in readingActivities) {
+      if (activity.title == title) {
+        return activity;
+      }
+    }
+
+    return null;
+  }
+
+  SpeakingActivity? _findSpeakingActivity(String title) {
+    for (final activity in speakingActivities) {
       if (activity.title == title) {
         return activity;
       }
@@ -164,6 +177,24 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
           context,
           MaterialPageRoute(
             builder: (_) => ReadingActivityScreen(activity: readingActivity),
+          ),
+        );
+
+        await _loadStudentAssignments();
+        return;
+
+      case 'Speaking':
+        final speakingActivity = _findSpeakingActivity(assignment.title);
+
+        if (speakingActivity == null) {
+          _showActivityNotFound(context);
+          return;
+        }
+
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => SpeakingActivityScreen(activity: speakingActivity),
           ),
         );
 

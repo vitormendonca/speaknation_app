@@ -165,6 +165,8 @@ class _TeacherStudentAssignedActivitiesScreenState
     switch (category) {
       case 'Listening':
         return Icons.headphones_outlined;
+      case 'Speaking':
+        return Icons.mic_none_outlined;
       case 'Vocabulary':
         return Icons.style_outlined;
       case 'Homework':
@@ -215,11 +217,18 @@ class _TeacherStudentAssignedActivitiesScreenState
       );
     }
 
-    if (activity.status == 'Completed') {
+    if (activity.status == 'Completed' || activity.status == 'Review Needed') {
       return IconButton(
         tooltip: 'Mark as reviewed',
         onPressed: () => _confirmMarkAsReviewed(activity),
-        icon: const Icon(Icons.check_circle_outline, color: AppTheme.success),
+        icon: Icon(
+          activity.status == 'Completed'
+              ? Icons.check_circle_outline
+              : Icons.rate_review_outlined,
+          color: activity.status == 'Completed'
+              ? AppTheme.success
+              : AppTheme.warning,
+        ),
       );
     }
 

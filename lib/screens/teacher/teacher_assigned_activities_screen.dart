@@ -59,6 +59,8 @@ class _TeacherAssignedActivitiesScreenState
     switch (category) {
       case 'Listening':
         return Icons.headphones_outlined;
+      case 'Speaking':
+        return Icons.mic_none_outlined;
       case 'Vocabulary':
         return Icons.style_outlined;
       case 'Homework':

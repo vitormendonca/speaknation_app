@@ -21,21 +21,25 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
   String studentLevel = 'A1';
 
   int listeningCompleted = 0;
+  int speakingCompleted = 0;
   int vocabularyCompleted = 0;
   int readingCompleted = 0;
   int homeworkCompleted = 0;
 
   int listeningPending = 0;
+  int speakingPending = 0;
   int vocabularyPending = 0;
   int readingPending = 0;
   int homeworkPending = 0;
 
   int listeningReviewNeeded = 0;
+  int speakingReviewNeeded = 0;
   int vocabularyReviewNeeded = 0;
   int readingReviewNeeded = 0;
   int homeworkReviewNeeded = 0;
 
   int listeningAverage = 0;
+  int speakingAverage = 0;
   int vocabularyAverage = 0;
   int readingAverage = 0;
   int homeworkAverage = 0;
@@ -63,16 +67,19 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
     final averages = await StudentProgressService.getAverageScoresByCategory();
 
     int listeningPendingCount = 0;
+    int speakingPendingCount = 0;
     int vocabularyPendingCount = 0;
     int readingPendingCount = 0;
     int homeworkPendingCount = 0;
 
     int listeningCompletedCount = 0;
+    int speakingCompletedCount = 0;
     int vocabularyCompletedCount = 0;
     int readingCompletedCount = 0;
     int homeworkCompletedCount = 0;
 
     int listeningReviewNeededCount = 0;
+    int speakingReviewNeededCount = 0;
     int vocabularyReviewNeededCount = 0;
     int readingReviewNeededCount = 0;
     int homeworkReviewNeededCount = 0;
@@ -83,6 +90,8 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
       if (activity.status == 'Pending') {
         if (category == 'listening') {
           listeningPendingCount++;
+        } else if (category == 'speaking') {
+          speakingPendingCount++;
         } else if (category == 'vocabulary') {
           vocabularyPendingCount++;
         } else if (category == 'reading') {
@@ -95,6 +104,8 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
       if (activity.status == 'Completed' || activity.status == 'Reviewed') {
         if (category == 'listening') {
           listeningCompletedCount++;
+        } else if (category == 'speaking') {
+          speakingCompletedCount++;
         } else if (category == 'vocabulary') {
           vocabularyCompletedCount++;
         } else if (category == 'reading') {
@@ -107,6 +118,8 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
       if (activity.status == 'Review Needed') {
         if (category == 'listening') {
           listeningReviewNeededCount++;
+        } else if (category == 'speaking') {
+          speakingReviewNeededCount++;
         } else if (category == 'vocabulary') {
           vocabularyReviewNeededCount++;
         } else if (category == 'reading') {
@@ -124,21 +137,25 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
       studentLevel = currentStudentLevel;
 
       listeningPending = listeningPendingCount;
+      speakingPending = speakingPendingCount;
       vocabularyPending = vocabularyPendingCount;
       readingPending = readingPendingCount;
       homeworkPending = homeworkPendingCount;
 
       listeningCompleted = listeningCompletedCount;
+      speakingCompleted = speakingCompletedCount;
       vocabularyCompleted = vocabularyCompletedCount;
       readingCompleted = readingCompletedCount;
       homeworkCompleted = homeworkCompletedCount;
 
       listeningReviewNeeded = listeningReviewNeededCount;
+      speakingReviewNeeded = speakingReviewNeededCount;
       vocabularyReviewNeeded = vocabularyReviewNeededCount;
       readingReviewNeeded = readingReviewNeededCount;
       homeworkReviewNeeded = homeworkReviewNeededCount;
 
       listeningAverage = averages['listening'] ?? 0;
+      speakingAverage = averages['speaking'] ?? 0;
       vocabularyAverage = averages['vocabulary'] ?? 0;
       readingAverage = averages['reading'] ?? 0;
       homeworkAverage = averages['homework'] ?? 0;
@@ -193,15 +210,21 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
   Widget build(BuildContext context) {
     final totalCompleted =
         listeningCompleted +
+        speakingCompleted +
         vocabularyCompleted +
         readingCompleted +
         homeworkCompleted;
 
     final totalPending =
-        listeningPending + vocabularyPending + readingPending + homeworkPending;
+        listeningPending +
+        speakingPending +
+        vocabularyPending +
+        readingPending +
+        homeworkPending;
 
     final totalReviewNeeded =
         listeningReviewNeeded +
+        speakingReviewNeeded +
         vocabularyReviewNeeded +
         readingReviewNeeded +
         homeworkReviewNeeded;
@@ -416,6 +439,16 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
             reviewNeeded: listeningReviewNeeded,
             averageScore: listeningAverage,
             color: AppTheme.info,
+          ),
+          progressRow(
+            context: context,
+            icon: Icons.mic_none_outlined,
+            title: 'Speaking',
+            pending: speakingPending,
+            completed: speakingCompleted,
+            reviewNeeded: speakingReviewNeeded,
+            averageScore: speakingAverage,
+            color: AppTheme.accentPurple,
           ),
           progressRow(
             context: context,

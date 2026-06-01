@@ -36,6 +36,7 @@ class _TeacherAssignActivityScreenState
     'All',
     'Homework',
     'Listening',
+    'Speaking',
     'Vocabulary',
     'Reading',
   ];
@@ -54,6 +55,13 @@ class _TeacherAssignActivityScreenState
       'type': 'Listening',
       'level': 'A1',
       'description': 'Listen to a short audio about a daily routine.',
+    },
+    {
+      'id': 'speaking_001',
+      'title': 'Personal Introduction Practice',
+      'type': 'Speaking',
+      'level': 'A1',
+      'description': 'Practice a short self-introduction for teacher review.',
     },
     {
       'id': 'vocabulary_a1_greetings',
@@ -88,6 +96,8 @@ class _TeacherAssignActivityScreenState
     switch (assignmentCategory) {
       case 'Listening':
         return 'listening';
+      case 'Speaking':
+        return 'speaking';
       case 'Vocabulary':
         return 'vocabulary';
       case 'Reading':
@@ -249,6 +259,8 @@ class _TeacherAssignActivityScreenState
     switch (type) {
       case 'Listening':
         return Icons.headphones_outlined;
+      case 'Speaking':
+        return Icons.mic_none_outlined;
       case 'Vocabulary':
         return Icons.style_outlined;
       case 'Homework':
@@ -264,6 +276,8 @@ class _TeacherAssignActivityScreenState
     switch (type) {
       case 'Listening':
         return AppTheme.info;
+      case 'Speaking':
+        return AppTheme.accentPurple;
       case 'Vocabulary':
         return AppTheme.brandRed;
       case 'Homework':

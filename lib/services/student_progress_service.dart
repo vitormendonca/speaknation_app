@@ -187,26 +187,29 @@ class StudentProgressService {
       return 0;
     }
 
-    final total = categoryScores.fold<int>(
-      0,
-      (sum, score) => sum + score,
-    );
+    final total = categoryScores.fold<int>(0, (sum, score) => sum + score);
 
     return (total / categoryScores.length).round();
   }
 
   static Future<Map<String, int>> getProgressByCategory() async {
-    final listeningCompleted =
-        await getCompletedActivitiesByCategory('listening');
-    final vocabularyCompleted =
-        await getCompletedActivitiesByCategory('vocabulary');
-    final readingCompleted =
-        await getCompletedActivitiesByCategory('reading');
-    final homeworkCompleted =
-        await getCompletedActivitiesByCategory('homework');
+    final listeningCompleted = await getCompletedActivitiesByCategory(
+      'listening',
+    );
+    final speakingCompleted = await getCompletedActivitiesByCategory(
+      'speaking',
+    );
+    final vocabularyCompleted = await getCompletedActivitiesByCategory(
+      'vocabulary',
+    );
+    final readingCompleted = await getCompletedActivitiesByCategory('reading');
+    final homeworkCompleted = await getCompletedActivitiesByCategory(
+      'homework',
+    );
 
     return {
       'listening': listeningCompleted,
+      'speaking': speakingCompleted,
       'vocabulary': vocabularyCompleted,
       'reading': readingCompleted,
       'homework': homeworkCompleted,
@@ -214,17 +217,17 @@ class StudentProgressService {
   }
 
   static Future<Map<String, int>> getPendingByCategories() async {
-    final listeningPending =
-        await getPendingActivitiesByCategory('listening');
-    final vocabularyPending =
-        await getPendingActivitiesByCategory('vocabulary');
-    final readingPending =
-        await getPendingActivitiesByCategory('reading');
-    final homeworkPending =
-        await getPendingActivitiesByCategory('homework');
+    final listeningPending = await getPendingActivitiesByCategory('listening');
+    final speakingPending = await getPendingActivitiesByCategory('speaking');
+    final vocabularyPending = await getPendingActivitiesByCategory(
+      'vocabulary',
+    );
+    final readingPending = await getPendingActivitiesByCategory('reading');
+    final homeworkPending = await getPendingActivitiesByCategory('homework');
 
     return {
       'listening': listeningPending,
+      'speaking': speakingPending,
       'vocabulary': vocabularyPending,
       'reading': readingPending,
       'homework': homeworkPending,
@@ -233,12 +236,14 @@ class StudentProgressService {
 
   static Future<Map<String, int>> getReviewNeededByCategories() async {
     final listeningReview = await getReviewNeededByCategory('listening');
+    final speakingReview = await getReviewNeededByCategory('speaking');
     final vocabularyReview = await getReviewNeededByCategory('vocabulary');
     final readingReview = await getReviewNeededByCategory('reading');
     final homeworkReview = await getReviewNeededByCategory('homework');
 
     return {
       'listening': listeningReview,
+      'speaking': speakingReview,
       'vocabulary': vocabularyReview,
       'reading': readingReview,
       'homework': homeworkReview,
@@ -247,12 +252,14 @@ class StudentProgressService {
 
   static Future<Map<String, int>> getAverageScoresByCategory() async {
     final listeningAverage = await getAverageScoreByCategory('listening');
+    final speakingAverage = await getAverageScoreByCategory('speaking');
     final vocabularyAverage = await getAverageScoreByCategory('vocabulary');
     final readingAverage = await getAverageScoreByCategory('reading');
     final homeworkAverage = await getAverageScoreByCategory('homework');
 
     return {
       'listening': listeningAverage,
+      'speaking': speakingAverage,
       'vocabulary': vocabularyAverage,
       'reading': readingAverage,
       'homework': homeworkAverage,
