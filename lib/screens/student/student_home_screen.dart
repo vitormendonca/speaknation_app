@@ -65,7 +65,11 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
 
     final List<AssignedActivity> assignments =
         await AssignmentService.getAssignedActivitiesByStudentName(
-      savedStudentName,
+          savedStudentName,
+        );
+
+    await LearningPathProgressService.syncCompletedAssignmentsToLearningPath(
+      assignments,
     );
 
     final pathProgress =
@@ -116,9 +120,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   Future<void> openScreen(BuildContext context, Widget screen) async {
     await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => screen,
-      ),
+      MaterialPageRoute(builder: (context) => screen),
     );
 
     await refreshProgress();
@@ -157,10 +159,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             tooltip: 'My Profile',
             icon: const Icon(Icons.person_outline),
             onPressed: () {
-              openScreen(
-                context,
-                const StudentProfileScreen(),
-              );
+              openScreen(context, const StudentProfileScreen());
             },
           ),
         ],
@@ -183,10 +182,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             const SizedBox(height: 10),
             Text(
               'Your teacher guides the same learning path you can study on your own.',
-              style: TextStyle(
-                color: colors.onSurfaceVariant,
-                fontSize: 12,
-              ),
+              style: TextStyle(color: colors.onSurfaceVariant, fontSize: 12),
             ),
           ],
         ),
@@ -219,9 +215,9 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
       actionLabel = 'Continue Learning';
       actionIcon = Icons.play_arrow_rounded;
       action = () => openScreen(
-            context,
-            const StudentLearningPathScreen(skillId: 'listening'),
-          );
+        context,
+        const StudentLearningPathScreen(skillId: 'listening'),
+      );
     }
 
     return _panel(
@@ -454,10 +450,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           const SizedBox(width: 10),
           IconButton(
             tooltip: 'Open level checks',
-            onPressed: () => openScreen(
-              context,
-              const StudentLevelTestsScreen(),
-            ),
+            onPressed: () =>
+                openScreen(context, const StudentLevelTestsScreen()),
             icon: const Icon(Icons.arrow_forward_ios_rounded),
           ),
         ],
@@ -479,10 +473,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             title: 'Teacher Guidance',
             subtitle: 'Recommendations from your teacher for this same path.',
             actionLabel: 'Open',
-            onAction: () => openScreen(
-              context,
-              const StudentAssignmentsScreen(),
-            ),
+            onAction: () =>
+                openScreen(context, const StudentAssignmentsScreen()),
           ),
           const SizedBox(height: 16),
           if (isLoadingProgress)
@@ -746,10 +738,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         ),
         if (actionLabel != null && onAction != null) ...[
           const SizedBox(width: 10),
-          TextButton(
-            onPressed: onAction,
-            child: Text(actionLabel),
-          ),
+          TextButton(onPressed: onAction, child: Text(actionLabel)),
         ],
       ],
     );
@@ -834,5 +823,4 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return colors.outlineVariant.withValues(alpha: isDark ? 0.35 : 0.8);
   }
-
 }

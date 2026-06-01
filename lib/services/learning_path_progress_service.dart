@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/learning_path_data.dart';
+import '../models/assigned_activity.dart';
 import '../models/learning_path_step.dart';
 import 'supabase_bootstrap.dart';
 
@@ -81,6 +82,114 @@ class LearningPathProgressService {
     completed.add(stepId);
 
     await _saveLocalCompletedStepIds(completed);
+  }
+
+  static Future<void> markNextLessonCompletedForCategory(
+    String category,
+  ) async {
+    final skillId = skillIdForAssignmentCategory(category);
+
+    if (skillId == null) {
+      return;
+    }
+
+    await markNextLessonCompletedForSkill(skillId);
+  }
+
+  static Future<void> markNextLessonCompletedForSkill(String skillId) async {
+    final completed = await getCompletedStepIds();
+    final lessonSteps = getLearningPathStepsBySkill(
+      skillId,
+    ).where((step) => step.type == LearningPathStepType.lesson).toList();
+
+    for (final step in lessonSteps) {
+      if (!completed.contains(step.id)) {
+        await markStepCompleted(step.id);
+        return;
+      }
+    }
+  }
+
+  static Future<void> syncCompletedAssignmentsToLearningPath(
+    Iterable<AssignedActivity> assignments,
+  ) async {
+    final requiredLessonsBySkill = <String, int>{};
+
+    for (final assignment in assignments) {
+      final status = assignment.status.toLowerCase().trim();
+
+      if (status != 'completed' && status != 'reviewed') {
+        continue;
+      }
+
+      final skillId = skillIdForAssignmentCategory(assignment.category);
+
+      if (skillId == null) {
+        continue;
+      }
+
+      requiredLessonsBySkill[skillId] =
+          (requiredLessonsBySkill[skillId] ?? 0) + 1;
+    }
+
+    if (requiredLessonsBySkill.isEmpty) {
+      return;
+    }
+
+    final completed = await getCompletedStepIds();
+
+    for (final entry in requiredLessonsBySkill.entries) {
+      final lessonSteps = getLearningPathStepsBySkill(
+        entry.key,
+      ).where((step) => step.type == LearningPathStepType.lesson).toList();
+
+      final completedLessonCount = lessonSteps
+          .where((step) => completed.contains(step.id))
+          .length;
+      final missingLessonCount = entry.value - completedLessonCount;
+
+      if (missingLessonCount <= 0) {
+        continue;
+      }
+
+      var marked = 0;
+
+      for (final step in lessonSteps) {
+        if (completed.contains(step.id)) {
+          continue;
+        }
+
+        await markStepCompleted(step.id);
+        completed.add(step.id);
+        marked++;
+
+        if (marked >= missingLessonCount) {
+          break;
+        }
+      }
+    }
+  }
+
+  static String? skillIdForAssignmentCategory(String category) {
+    final normalized = category.toLowerCase().trim();
+
+    switch (normalized) {
+      case 'listening':
+        return 'listening';
+      case 'speaking':
+        return 'speaking';
+      case 'reading':
+        return 'reading';
+      case 'vocabulary':
+        return 'vocabulary';
+      case 'homework':
+      case 'grammar':
+      case 'practice':
+      case 'grammar & practice':
+        return 'homework';
+      default:
+        return null;
+    }
   }
 
   static Future<bool> isStepCompleted(String stepId) async {

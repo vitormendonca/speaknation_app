@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/assigned_activity.dart';
+import 'learning_path_progress_service.dart';
 import 'supabase_bootstrap.dart';
 
 class AssignmentService {
@@ -331,12 +332,20 @@ class AssignmentService {
     required String title,
     required String category,
   }) async {
-    return _updateStudentAssignmentStatus(
+    final wasUpdated = await _updateStudentAssignmentStatus(
       studentName: studentName,
       title: title,
       category: category,
       newStatus: 'Completed',
     );
+
+    if (wasUpdated) {
+      await LearningPathProgressService.markNextLessonCompletedForCategory(
+        category,
+      );
+    }
+
+    return wasUpdated;
   }
 
   static Future<bool> markStudentAssignmentAsReviewNeeded({
