@@ -37,13 +37,23 @@ teacher123
 
 ## Tech Stack
 
-- Flutter / Dart
-- Material 3
-- Supabase Flutter
-- SharedPreferences for local MVP state
-- GitHub Pages deployment workflow
-- Supabase SQL migrations and seed data
+## Tech Stack
 
+- Flutter
+- Dart
+- Supabase
+- PostgreSQL
+- Local persistence
+- User authentication structure
+- Relational database modeling
+- CRUD operations
+- Student progress tracking
+- Git / GitHub
+- GitHub Actions
+- Flutter Web deployment
+- UI/UX for educational apps
+- Teacher and student role management
+- 
 ## Current MVP Features
 
 - Student login with demo code or Supabase email login when configured.
