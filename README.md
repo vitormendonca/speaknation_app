@@ -1,4 +1,4 @@
-# SpeakNation
+# SpeakNation Demo
 
 SpeakNation is a Flutter MVP for guided English learning. It combines a student learning road, teacher guidance, progress tracking, placement tests, and a Supabase-ready backend structure.
 
@@ -20,22 +20,6 @@ Many English students depend on the teacher to decide every next step. SpeakNati
 ## Demo Access
 
 The app can run in local demo mode without Supabase credentials.
-
-Student demo codes:
-
-```text
-joao123
-maria123
-ana123
-```
-
-Teacher demo code:
-
-```text
-teacher123
-```
-
-## Tech Stack
 
 ## Tech Stack
 
