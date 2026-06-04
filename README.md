@@ -20,6 +20,7 @@ Many English students depend on the teacher to decide every next step. SpeakNati
 ## Demo Access
 
 The app can run in local demo mode without Supabase credentials.
+>> https://vitormendonca.github.io/speaknation_app/ <<
 
 ## Tech Stack
 
